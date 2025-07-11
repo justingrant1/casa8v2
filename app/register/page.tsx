@@ -74,9 +74,14 @@ export default function RegisterPage() {
         throw result.error
       }
 
-      console.log("Registration successful, redirecting to login")
-      // Show success message or redirect
-      router.push("/login?message=Please check your email to verify your account")
+      console.log("Registration successful, user is now logged in")
+      
+      // Redirect based on user role after successful registration and auto-login
+      if (formData.role === "landlord") {
+        router.push("/dashboard")
+      } else {
+        router.push("/")
+      }
     } catch (error: any) {
       console.error("Registration error:", error)
       setError(error.message || "An error occurred during registration")

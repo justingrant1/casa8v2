@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null
   profile: Profile | null
   loading: boolean
-  signUp: (email: string, password: string, userData: { full_name: string; role: 'tenant' | 'landlord' }) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string, userData: { full_name: string; role: 'tenant' | 'landlord' }) => Promise<{ error: AuthError | null; user?: User | null; session?: any }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>
@@ -80,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          data: userData
+          data: userData,
+          emailRedirectTo: undefined // Skip email confirmation
         }
       })
 
@@ -102,9 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileError) {
           console.error('Error creating profile:', profileError)
         }
+
+        // Auto-login the user after successful registration
+        if (data.session) {
+          setUser(data.session.user)
+          await fetchProfile(data.session.user.id)
+        }
       }
 
-      return { error: null }
+      return { error: null, user: data.user, session: data.session }
     } catch (error) {
       return { error: error as AuthError }
     }
