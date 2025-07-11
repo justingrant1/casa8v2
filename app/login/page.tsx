@@ -12,26 +12,38 @@ import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, ArrowRight, Shield, Users, Star, Mail, Lock } from "lucide-react"
+import { useAuth } from "@/lib/auth"
+import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { signIn, loading } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   })
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle login logic here
-    console.log("Login data:", formData)
+    setIsLoading(true)
 
-    // For demo purposes, redirect to dashboard if email contains "landlord"
-    if (formData.email.includes("landlord")) {
+    try {
+      const { error } = await signIn(formData.email, formData.password)
+
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.success("Welcome back!")
       router.push("/dashboard")
-    } else {
-      router.push("/")
+    } catch (error) {
+      toast.error("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -40,6 +52,17 @@ export default function LoginPage() {
       ...prev,
       [field]: value,
     }))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -213,10 +236,11 @@ export default function LoginPage() {
 
                   <Button
                     type="submit"
+                    disabled={isLoading}
                     className="w-full h-14 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
                   >
-                    Sign In
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    {isLoading ? "Signing In..." : "Sign In"}
+                    {!isLoading && <ArrowRight className="ml-2 h-5 w-5" />}
                   </Button>
                 </form>
 

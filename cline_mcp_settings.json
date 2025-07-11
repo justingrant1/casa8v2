@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "github.com/alexander-zuev/supabase-mcp-server": {
+      "command": "C:\\Users\\jgran\\pipx\\venvs\\supabase-mcp-server\\Scripts\\supabase-mcp-server.exe",
+      "disabled": false,
+      "autoApprove": [],
+      "env": {
+        "QUERY_API_KEY": "qry_v1_X3mCF_FDrR2Ric_fWgGSs0HLYOIelf_x4YIdQ-Kt5Y4",
+        "SUPABASE_PROJECT_REF": "ylhkoromgjhapjpagvxg",
+        "SUPABASE_DB_PASSWORD": "EdgeProperty85!",
+        "SUPABASE_REGION": "us-east-1"
+      }
+    }
+  }
+}

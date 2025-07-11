@@ -11,6 +11,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
+import { useAuth } from "@/lib/auth"
 
 // Mock data for properties
 const properties = [
@@ -96,6 +97,7 @@ const properties = [
 
 export default function HomePage() {
   const router = useRouter()
+  const { user, profile, signOut, loading } = useAuth()
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
@@ -124,12 +126,27 @@ export default function HomePage() {
   }
 
   const handlePostListing = () => {
-    const isLoggedIn = false
-    if (isLoggedIn) {
+    if (user) {
       router.push("/list-property")
     } else {
       router.push("/login")
     }
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push("/")
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -160,19 +177,40 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <Button variant="ghost" className="font-medium">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button variant="outline" className="font-medium bg-transparent">
-                  Sign Up
-                </Button>
-              </Link>
-              <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
-                Post Listing
-              </Button>
+              {user ? (
+                <>
+                  <span className="text-sm font-medium text-gray-700 hidden md:block">
+                    Welcome, {profile?.full_name || user.email}!
+                  </span>
+                  <Link href="/dashboard">
+                    <Button variant="ghost" className="font-medium">
+                      Dashboard
+                    </Button>
+                  </Link>
+                  <Button variant="outline" className="font-medium bg-transparent" onClick={handleSignOut}>
+                    Logout
+                  </Button>
+                  <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
+                    Post Listing
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" className="font-medium">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button variant="outline" className="font-medium bg-transparent">
+                      Sign Up
+                    </Button>
+                  </Link>
+                  <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
+                    Post Listing
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
