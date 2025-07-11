@@ -17,7 +17,7 @@ import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, loading } = useAuth()
+  const { signIn, signInWithGoogle, loading } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -39,7 +39,8 @@ export default function LoginPage() {
       }
 
       toast.success("Welcome back!")
-      router.push("/dashboard")
+      // Redirect will be handled by the auth context based on user role
+      // Landlords go to dashboard, tenants go to homepage
     } catch (error) {
       toast.error("An unexpected error occurred")
     } finally {
@@ -259,6 +260,16 @@ export default function LoginPage() {
                     <Button
                       variant="outline"
                       className="h-12 rounded-xl border-gray-200 hover:bg-gray-50 font-medium bg-transparent"
+                      onClick={async () => {
+                        try {
+                          const { error } = await signInWithGoogle()
+                          if (error) {
+                            toast.error(error.message)
+                          }
+                        } catch (error) {
+                          toast.error("Failed to sign in with Google")
+                        }
+                      }}
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                         <path

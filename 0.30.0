@@ -1,0 +1,6 @@
+Collecting asyncpg
+  Using cached asyncpg-0.30.0-cp311-cp311-win_amd64.whl.metadata (5.2 kB)
+Downloading asyncpg-0.30.0-cp311-cp311-win_amd64.whl (629 kB)
+   ---------------------------------------- 629.4/629.4 kB 5.0 MB/s eta 0:00:00
+Installing collected packages: asyncpg
+Successfully installed asyncpg-0.30.0

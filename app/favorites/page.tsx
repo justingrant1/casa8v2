@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Heart, Filter, Grid, List } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth"
 
 // Mock data for favorited properties
 const favoriteProperties = [
@@ -60,7 +61,7 @@ const favoriteProperties = [
 
 export default function FavoritesPage() {
   const router = useRouter()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const { user, loading } = useAuth()
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("newest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -73,19 +74,11 @@ export default function FavoritesPage() {
   })
 
   useEffect(() => {
-    // Check if user is logged in - replace with actual auth logic
-    const checkAuth = () => {
-      const loggedIn = false // This would come from your auth state/context
-      setIsLoggedIn(loggedIn)
-
-      if (!loggedIn) {
-        // Redirect to login if not authenticated
-        router.push("/login")
-      }
+    if (!loading && !user) {
+      // Redirect to login if not authenticated
+      router.push("/login")
     }
-
-    checkAuth()
-  }, [router])
+  }, [user, loading, router])
 
   const openContactModal = (property: any) => {
     setContactModal({
@@ -135,7 +128,7 @@ export default function FavoritesPage() {
   })
 
   // Show loading or redirect while checking authentication
-  if (!isLoggedIn) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

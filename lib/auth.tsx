@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean
   signUp: (email: string, password: string, userData: { full_name: string; role: 'tenant' | 'landlord' }) => Promise<{ error: AuthError | null; user?: User | null; session?: any }>
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
+  signInWithGoogle: () => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>
 }
@@ -119,9 +120,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
+      })
+
+      if (error) {
+        return { error }
+      }
+
+      // Auto-redirect based on user role after successful login
+      if (data.user) {
+        await fetchProfile(data.user.id)
+        
+        // Get the user's profile to determine role
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        // Redirect based on role
+        if (profileData?.role === 'landlord') {
+          window.location.href = '/dashboard'
+        } else {
+          window.location.href = '/'
+        }
+      }
+
+      return { error: null }
+    } catch (error) {
+      return { error: error as AuthError }
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
       })
 
       return { error }
@@ -131,7 +170,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      setProfile(null)
+      // Force redirect to home page
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const updateProfile = async (updates: Partial<Profile>) => {
@@ -164,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
     updateProfile
   }
