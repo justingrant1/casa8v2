@@ -11,12 +11,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Home, User, Eye, EyeOff, Shield, Users, Star, ArrowRight } from "lucide-react"
+import { Home, User, Eye, EyeOff, Shield, Users, Star, ArrowRight, AlertCircle, Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/auth"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultRole = searchParams.get("role") || "tenant"
+  const { signUp } = useAuth()
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -25,24 +28,51 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     phone: "",
-    role: defaultRole,
+    role: defaultRole as "tenant" | "landlord",
     agreeToTerms: false,
   })
 
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle registration logic here
-    console.log("Registration data:", formData)
+    setIsLoading(true)
+    setError("")
 
-    // Redirect based on role
-    if (formData.role === "landlord") {
-      router.push("/dashboard")
-    } else {
-      router.push("/")
+    try {
+      // Validate form data
+      if (formData.password !== formData.confirmPassword) {
+        throw new Error("Passwords do not match")
+      }
+
+      if (!formData.agreeToTerms) {
+        throw new Error("You must agree to the terms and conditions")
+      }
+
+      // Create user with Supabase
+      const { error: signUpError } = await signUp(
+        formData.email,
+        formData.password,
+        {
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          role: formData.role,
+        }
+      )
+
+      if (signUpError) {
+        throw signUpError
+      }
+
+      // Show success message or redirect
+      router.push("/login?message=Please check your email to verify your account")
+    } catch (error: any) {
+      setError(error.message || "An error occurred during registration")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -202,6 +232,16 @@ export default function RegisterPage() {
               </CardHeader>
 
               <CardContent className="px-8 pb-8">
+                {/* Error Display */}
+                {error && (
+                  <Alert className="mb-6 border-red-200 bg-red-50">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <AlertDescription className="text-red-800">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Role Selection */}
                   <div className="space-y-4">
@@ -437,10 +477,19 @@ export default function RegisterPage() {
                   <Button
                     type="submit"
                     className="w-full h-14 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-                    disabled={!formData.agreeToTerms || formData.password !== formData.confirmPassword}
+                    disabled={!formData.agreeToTerms || formData.password !== formData.confirmPassword || isLoading}
                   >
-                    Create Account
-                    <ArrowRight className="ml-2 h-5 w-5" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      <>
+                        Create Account
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </>
+                    )}
                   </Button>
                 </form>
 
