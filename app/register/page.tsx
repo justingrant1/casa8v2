@@ -43,6 +43,8 @@ export default function RegisterPage() {
     setIsLoading(true)
     setError("")
 
+    console.log("Registration form submitted", formData)
+
     try {
       // Validate form data
       if (formData.password !== formData.confirmPassword) {
@@ -53,8 +55,10 @@ export default function RegisterPage() {
         throw new Error("You must agree to the terms and conditions")
       }
 
+      console.log("About to call signUp function")
+
       // Create user with Supabase
-      const { error: signUpError } = await signUp(
+      const result = await signUp(
         formData.email,
         formData.password,
         {
@@ -63,13 +67,18 @@ export default function RegisterPage() {
         }
       )
 
-      if (signUpError) {
-        throw signUpError
+      console.log("SignUp result:", result)
+
+      if (result.error) {
+        console.error("SignUp error:", result.error)
+        throw result.error
       }
 
+      console.log("Registration successful, redirecting to login")
       // Show success message or redirect
       router.push("/login?message=Please check your email to verify your account")
     } catch (error: any) {
+      console.error("Registration error:", error)
       setError(error.message || "An error occurred during registration")
     } finally {
       setIsLoading(false)
