@@ -292,3 +292,117 @@ export default function FavoritesPage() {
               <Card
                 key={property.id}
                 className={
+                  viewMode === "grid"
+                    ? "bg-white border shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                    : "bg-white border shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group flex flex-row"
+                }
+              >
+                <div className={viewMode === "grid" ? "relative" : "relative w-1/3"}>
+                  <img
+                    src={property.image}
+                    alt={property.title}
+                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFavorite(property.id)}
+                      className="bg-white/90 hover:bg-white text-red-600 hover:text-red-700 shadow-md"
+                    >
+                      <Heart className="h-4 w-4 fill-red-600" />
+                    </Button>
+                  </div>
+                </div>
+                <div className={viewMode === "grid" ? "p-6" : "p-6 flex-1"}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{property.title}</h3>
+                      <p className="text-gray-600">{property.location}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-bold text-primary">${property.price}</p>
+                      <p className="text-sm text-gray-500">/month</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 mb-4 text-sm text-gray-600">
+                    <span>{property.bedrooms} bed</span>
+                    <span>{property.bathrooms} bath</span>
+                    <span>{property.sqft} sqft</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-2">
+                      <Link href={`/property/${property.id}`}>
+                        <Button size="sm">View Details</Button>
+                      </Link>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openContactModal(property)}
+                      >
+                        Contact
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Added {new Date(property.dateAdded).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Contact Modal */}
+      {contactModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Contact Landlord</h2>
+                <Button variant="ghost" size="sm" onClick={closeContactModal}>
+                  ×
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold">{contactModal.property?.title}</h3>
+                  <p className="text-gray-600">Property ID: {contactModal.property?.id}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Landlord Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Name:</strong> {contactModal.landlord?.name}</p>
+                    <p><strong>Phone:</strong> {contactModal.landlord?.phone}</p>
+                    <p><strong>Email:</strong> {contactModal.landlord?.email}</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button 
+                    onClick={() => window.open(`tel:${contactModal.landlord?.phone}`)}
+                    className="flex-1"
+                  >
+                    Call
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(`mailto:${contactModal.landlord?.email}`)}
+                    className="flex-1"
+                  >
+                    Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
