@@ -15,7 +15,7 @@ import { Upload, X, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
-import { createProperty, formatFormDataForDB } from "@/lib/property-management"
+import { createPropertyWithImages, formatFormDataForDB } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ListPropertyPage() {
@@ -124,13 +124,14 @@ export default function ListPropertyPage() {
       // Format the form data for database insertion
       const propertyData = formatFormDataForDB(formData, user.id)
       
-      // Create the property
-      const result = await createProperty(propertyData)
+      // Create the property with images
+      const result = await createPropertyWithImages(propertyData, formData.images)
       
       if (result.success) {
+        const imageCount = result.images?.length || 0
         toast({
           title: "Property listed successfully!",
-          description: "Your property has been added to the platform"
+          description: `Your property has been added with ${imageCount} image${imageCount !== 1 ? 's' : ''}`
         })
         
         // Redirect to dashboard or property page

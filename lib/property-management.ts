@@ -21,6 +21,91 @@ export interface CreatePropertyData {
   allow_chat: boolean
 }
 
+export async function uploadPropertyImages(propertyId: string, images: File[]) {
+  const uploadedImages = []
+  
+  for (let i = 0; i < images.length; i++) {
+    const image = images[i]
+    const fileExt = image.name.split('.').pop()
+    const fileName = `${propertyId}_${i}_${Date.now()}.${fileExt}`
+    const filePath = `properties/${fileName}`
+
+    try {
+      // Upload image to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('property-images')
+        .upload(filePath, image)
+
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError)
+        continue
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(filePath)
+
+      // Save image record to database
+      const { data: imageRecord, error: dbError } = await supabase
+        .from('property_images')
+        .insert({
+          property_id: propertyId,
+          image_url: urlData.publicUrl,
+          alt_text: `${fileName}`,
+          order_index: i
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('Error saving image record:', dbError)
+        continue
+      }
+
+      uploadedImages.push(imageRecord)
+    } catch (error) {
+      console.error('Error processing image:', error)
+      continue
+    }
+  }
+
+  return uploadedImages
+}
+
+export async function createPropertyWithImages(propertyData: CreatePropertyData, images: File[] = []) {
+  try {
+    // First create the property
+    const { data: property, error } = await supabase
+      .from('properties')
+      .insert({
+        ...propertyData,
+        available: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Upload images if any
+    let uploadedImages = []
+    if (images.length > 0) {
+      uploadedImages = await uploadPropertyImages(property.id, images)
+    }
+
+    return { 
+      success: true, 
+      property, 
+      images: uploadedImages
+    }
+  } catch (error) {
+    console.error('Error creating property:', error)
+    throw error
+  }
+}
+
 export async function createProperty(propertyData: CreatePropertyData) {
   try {
     const { data: property, error } = await supabase
