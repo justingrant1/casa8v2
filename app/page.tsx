@@ -12,6 +12,7 @@ import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { useAuth } from "@/lib/auth"
+import { useFavorites } from "@/lib/favorites-context"
 
 // Mock data for properties
 const properties = [
@@ -98,7 +99,7 @@ const properties = [
 export default function HomePage() {
   const router = useRouter()
   const { user, profile, signOut, loading } = useAuth()
-  const [favorites, setFavorites] = useState<Set<number>>(new Set())
+  const { toggleFavorite, isFavorite } = useFavorites()
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
@@ -139,21 +140,13 @@ export default function HomePage() {
     // Don't need router.push since signOut() already handles redirect
   }
 
-  const toggleFavorite = (propertyId: number) => {
+  const handleToggleFavorite = (propertyId: number) => {
     if (!user) {
       router.push('/login')
       return
     }
     
-    setFavorites(prev => {
-      const newFavorites = new Set(prev)
-      if (newFavorites.has(propertyId)) {
-        newFavorites.delete(propertyId)
-      } else {
-        newFavorites.add(propertyId)
-      }
-      return newFavorites
-    })
+    toggleFavorite(propertyId)
   }
 
   // Add timeout for loading state to prevent infinite loading in Chrome
@@ -404,12 +397,12 @@ export default function HomePage() {
                     className="absolute top-4 right-4 h-10 w-10 bg-white/90 hover:bg-white shadow-lg"
                     onClick={(e) => {
                       e.preventDefault()
-                      toggleFavorite(property.id)
+                      handleToggleFavorite(property.id)
                     }}
                   >
                     <Heart 
                       className={`h-5 w-5 transition-colors ${
-                        favorites.has(property.id) 
+                        isFavorite(property.id) 
                           ? 'fill-red-500 text-red-500' 
                           : 'text-gray-600'
                       }`} 

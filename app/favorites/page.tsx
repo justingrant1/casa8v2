@@ -9,59 +9,12 @@ import { Search, Heart, Filter, Grid, List } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
-
-// Mock data for favorited properties
-const favoriteProperties = [
-  {
-    id: 1,
-    title: "Modern Downtown Apartment",
-    price: 2500,
-    location: "Downtown, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Apartment",
-    landlord: "John Smith",
-    available: true,
-    dateAdded: "2024-01-15",
-    amenities: ["Gym", "Pool", "Parking", "Pet Friendly"],
-  },
-  {
-    id: 3,
-    title: "Luxury Waterfront Condo",
-    price: 4500,
-    location: "Waterfront, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1400,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Condo",
-    landlord: "Mike Davis",
-    available: true,
-    dateAdded: "2024-01-12",
-    amenities: ["Water View", "Concierge", "Gym", "Parking"],
-  },
-  {
-    id: 5,
-    title: "Family Home with Yard",
-    price: 2800,
-    location: "Redmond, WA",
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "David Brown",
-    available: true,
-    dateAdded: "2024-01-10",
-    amenities: ["Garage", "Garden", "Pet Friendly", "Storage"],
-  },
-]
+import { useFavorites } from "@/lib/favorites-context"
 
 export default function FavoritesPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
+  const { getFavoriteProperties, toggleFavorite } = useFavorites()
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("newest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -100,13 +53,15 @@ export default function FavoritesPage() {
   }
 
   const removeFavorite = (propertyId: number) => {
-    // Handle removing from favorites
-    console.log("Remove from favorites:", propertyId)
+    toggleFavorite(propertyId)
   }
 
+  // Get favorite properties from context
+  const favoriteProperties = getFavoriteProperties()
+  
   // Filter and sort properties
   const filteredProperties = favoriteProperties.filter(
-    (property) =>
+    (property: any) =>
       searchQuery === "" ||
       property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.location.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -115,7 +70,7 @@ export default function FavoritesPage() {
   const sortedProperties = [...filteredProperties].sort((a, b) => {
     switch (sortBy) {
       case "newest":
-        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+        return b.id - a.id // Sort by property ID as proxy for newest
       case "price-low":
         return a.price - b.price
       case "price-high":
@@ -339,7 +294,7 @@ export default function FavoritesPage() {
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500">
-                      Added {new Date(property.dateAdded).toLocaleDateString()}
+                      Property #{property.id}
                     </p>
                   </div>
                 </div>
