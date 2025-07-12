@@ -120,13 +120,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              {loading ? (
-                // Show minimal loading state
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-sm text-gray-600">Loading...</span>
-                </div>
-              ) : user ? (
+              {user ? (
                 <>
                   <span className="text-sm font-medium text-gray-700 hidden md:block">
                     Welcome, {profile?.full_name || user.email}!
