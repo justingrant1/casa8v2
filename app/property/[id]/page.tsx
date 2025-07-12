@@ -314,7 +314,12 @@ export default function PropertyDetailPage() {
     const currentX = e.targetTouches[0].clientX
     const diff = touchStart - currentX
     setTouchEnd(currentX)
-    setDragOffset(diff)
+    
+    // Convert to percentage and constrain the drag
+    const containerWidth = 600 // approximate details page width
+    const dragPercent = (diff / containerWidth) * 100
+    const constrainedDrag = Math.max(-30, Math.min(30, dragPercent)) // Limit to ±30%
+    setDragOffset(constrainedDrag)
   }
 
   const onTouchEnd = () => {
