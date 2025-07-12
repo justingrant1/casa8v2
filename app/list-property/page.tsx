@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,15 +16,19 @@ import { Upload, X, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
-import { createPropertyWithImages, formatFormDataForDB } from "@/lib/property-management"
+import { createPropertyWithImages, formatFormDataForDB, getPropertyForEdit, updatePropertyWithImages } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ListPropertyPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editPropertyId, setEditPropertyId] = useState<string | null>(null)
+  const [existingImages, setExistingImages] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -66,7 +71,62 @@ export default function ListPropertyPage() {
       router.push("/")
       return
     }
-  }, [user, authLoading, router])
+
+    // Check if we're editing a property
+    const editId = searchParams.get('edit')
+    if (editId && user) {
+      setIsEditing(true)
+      setEditPropertyId(editId)
+      loadPropertyForEdit(editId)
+    }
+  }, [user, authLoading, router, searchParams])
+
+  const loadPropertyForEdit = async (propertyId: string) => {
+    if (!user) return
+    
+    setIsLoading(true)
+    try {
+      const property = await getPropertyForEdit(propertyId, user.id)
+      
+      // Populate form with existing data
+      setFormData({
+        title: property.title || "",
+        description: property.description || "",
+        propertyType: property.property_type || "",
+        address: property.address || "",
+        city: property.city || "",
+        state: property.state || "",
+        zipCode: property.zip_code || "",
+        bedrooms: property.bedrooms?.toString() || "",
+        bathrooms: property.bathrooms?.toString() || "",
+        sqft: property.square_feet?.toString() || "",
+        rent: property.price?.toString() || "",
+        deposit: property.security_deposit?.toString() || "",
+        availableDate: property.available_date || "",
+        leaseTerms: "",
+        petPolicy: property.pet_policy || "",
+        amenities: property.amenities || [],
+        images: [], // New images to upload
+        videos: [],
+        includePhoneNumber: !!property.contact_phone,
+        allowChat: property.allow_chat || false,
+        contactPhoneNumber: property.contact_phone || "",
+      })
+      
+      // Set existing images
+      setExistingImages(property.property_images || [])
+    } catch (error) {
+      console.error('Error loading property for edit:', error)
+      toast({
+        title: "Error loading property",
+        description: "Failed to load property details for editing",
+        variant: "destructive"
+      })
+      router.push('/dashboard')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const amenitiesList = [
     "Air conditioning",
@@ -118,20 +178,25 @@ export default function ListPropertyPage() {
     }))
   }
 
+  const removeExistingImage = (imageId: string) => {
+    setExistingImages(prev => prev.filter(img => img.id !== imageId))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     console.log('🔍 DEBUG: Form submission started')
+    console.log('🔍 DEBUG: Is editing:', isEditing)
     console.log('🔍 DEBUG: User:', user)
     console.log('🔍 DEBUG: Form data:', formData)
     console.log('🔍 DEBUG: Images in form data:', formData.images)
-    console.log('🔍 DEBUG: Images details:', formData.images.map(img => ({ name: img.name, size: img.size, type: img.type })))
+    console.log('🔍 DEBUG: Existing images:', existingImages)
     
     if (!user) {
       console.log('❌ DEBUG: No user found')
       toast({
         title: "Authentication required",
-        description: "Please log in to list a property",
+        description: "Please log in to manage properties",
         variant: "destructive"
       })
       return
@@ -162,24 +227,39 @@ export default function ListPropertyPage() {
     setIsSubmitting(true)
 
     try {
-      console.log("🔍 DEBUG: Starting property creation process...")
-      console.log("🔍 DEBUG: Form data:", formData)
-      
       // Format the form data for database insertion
       const propertyData = formatFormDataForDB(formData, user.id)
       console.log("🔍 DEBUG: Formatted property data:", propertyData)
-      console.log("🔍 DEBUG: About to call createPropertyWithImages with images:", formData.images.length)
       
-      // Create the property with images
-      const result = await createPropertyWithImages(propertyData, formData.images)
-      console.log("🔍 DEBUG: createPropertyWithImages result:", result)
+      let result
+      
+      if (isEditing && editPropertyId) {
+        console.log("🔍 DEBUG: Updating existing property with ID:", editPropertyId)
+        const existingImageIds = existingImages.map(img => img.id)
+        result = await updatePropertyWithImages(
+          editPropertyId, 
+          user.id, 
+          propertyData, 
+          formData.images,
+          existingImageIds
+        )
+        console.log("🔍 DEBUG: updatePropertyWithImages result:", result)
+      } else {
+        console.log("🔍 DEBUG: Creating new property with images:", formData.images.length)
+        result = await createPropertyWithImages(propertyData, formData.images)
+        console.log("🔍 DEBUG: createPropertyWithImages result:", result)
+      }
       
       if (result.success) {
         const imageCount = result.images?.length || 0
-        console.log("✅ DEBUG: Property creation successful with", imageCount, "images")
+        const action = isEditing ? "updated" : "listed"
+        console.log(`✅ DEBUG: Property ${action} successful with`, imageCount, "new images")
+        
         toast({
-          title: "Property listed successfully!",
-          description: `Your property has been added with ${imageCount} image${imageCount !== 1 ? 's' : ''}`
+          title: `Property ${action} successfully!`,
+          description: isEditing 
+            ? `Your property has been updated${imageCount > 0 ? ` with ${imageCount} new image${imageCount !== 1 ? 's' : ''}` : ''}`
+            : `Your property has been added with ${imageCount} image${imageCount !== 1 ? 's' : ''}`
         })
         
         // Small delay to ensure toast shows before redirect
@@ -188,7 +268,7 @@ export default function ListPropertyPage() {
         }, 1000)
       }
     } catch (error: any) {
-      console.error("❌ DEBUG: Error creating property:", error)
+      console.error("❌ DEBUG: Error processing property:", error)
       
       // More specific error handling
       let errorMessage = "Something went wrong. Please try again."
@@ -201,8 +281,9 @@ export default function ListPropertyPage() {
         errorMessage = error.details
       }
       
+      const action = isEditing ? "updating" : "listing"
       toast({
-        title: "Error listing property",
+        title: `Error ${action} property`,
         description: errorMessage,
         variant: "destructive"
       })
@@ -236,8 +317,8 @@ export default function ListPropertyPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-2xl font-bold">List New Property</h1>
-              <p className="text-muted-foreground">Add your property to attract tenants</p>
+              <h1 className="text-2xl font-bold">{isEditing ? 'Edit Property' : 'List New Property'}</h1>
+              <p className="text-muted-foreground">{isEditing ? 'Update your property details' : 'Add your property to attract tenants'}</p>
             </div>
           </div>
         </div>
@@ -564,9 +645,38 @@ export default function ListPropertyPage() {
               <CardDescription>Upload high-quality images and videos of your property</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Existing Images (when editing) */}
+              {isEditing && existingImages.length > 0 && (
+                <div className="space-y-4">
+                  <Label>Current Property Photos</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {existingImages.map((image) => (
+                      <div key={image.id} className="relative">
+                        <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                          <img 
+                            src={image.image_url} 
+                            alt={image.alt_text || "Property image"}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={() => removeExistingImage(image.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Image Upload */}
               <div className="space-y-4">
-                <Label>Property Photos</Label>
+                <Label>{isEditing ? "Add New Photos" : "Property Photos"}</Label>
                 <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
                   <div className="text-center">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -666,7 +776,10 @@ export default function ListPropertyPage() {
               </Button>
             </Link>
             <Button type="submit" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? "Listing Property..." : "List Property"}
+              {isSubmitting 
+                ? (isEditing ? "Updating Property..." : "Listing Property...") 
+                : (isEditing ? "Update Property" : "List Property")
+              }
             </Button>
           </div>
         </form>

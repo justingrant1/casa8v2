@@ -296,8 +296,7 @@ export default function LandlordDashboard() {
   }
 
   const handleEdit = (propertyId: number) => {
-    // For now, navigate to property page - later we can create an edit page
-    router.push(`/property/${propertyId}`)
+    router.push(`/list-property?edit=${propertyId}`)
   }
 
   const handleDelete = async (propertyId: number) => {

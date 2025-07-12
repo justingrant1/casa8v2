@@ -244,6 +244,112 @@ export async function updatePropertyStatus(propertyId: string, landlordId: strin
   }
 }
 
+export async function getPropertyForEdit(propertyId: string, landlordId: string) {
+  try {
+    const { data: property, error } = await supabase
+      .from('properties')
+      .select(`
+        *,
+        property_images (
+          id,
+          image_url,
+          alt_text,
+          order_index
+        )
+      `)
+      .eq('id', propertyId)
+      .eq('landlord_id', landlordId)
+      .single()
+
+    if (error) throw error
+    return property
+  } catch (error) {
+    console.error('Error fetching property for edit:', error)
+    throw error
+  }
+}
+
+export async function updatePropertyWithImages(
+  propertyId: string, 
+  landlordId: string, 
+  propertyData: Partial<CreatePropertyData>, 
+  images: File[] = [],
+  existingImageIds: string[] = []
+) {
+  try {
+    console.log('Updating property with data:', propertyData)
+    
+    // Update the property
+    const { data: property, error } = await supabase
+      .from('properties')
+      .update({
+        ...propertyData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', propertyId)
+      .eq('landlord_id', landlordId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Database error updating property:', error)
+      throw new Error(`Failed to update property: ${error.message}`)
+    }
+
+    console.log('Property updated successfully:', property)
+
+    // Handle image updates
+    let uploadedImages = []
+    
+    // Delete images that are no longer needed
+    const { data: currentImages } = await supabase
+      .from('property_images')
+      .select('id, image_url')
+      .eq('property_id', propertyId)
+
+    if (currentImages) {
+      const imagesToDelete = currentImages.filter(img => !existingImageIds.includes(img.id))
+      
+      for (const imageToDelete of imagesToDelete) {
+        // Delete from storage
+        const imagePath = imageToDelete.image_url.split('/').pop()
+        if (imagePath) {
+          await supabase.storage
+            .from('property-images')
+            .remove([`properties/${imagePath}`])
+        }
+        
+        // Delete from database
+        await supabase
+          .from('property_images')
+          .delete()
+          .eq('id', imageToDelete.id)
+      }
+    }
+
+    // Upload new images if any
+    if (images.length > 0) {
+      console.log(`Uploading ${images.length} new images...`)
+      try {
+        const newImages = await uploadPropertyImages(propertyId, images)
+        uploadedImages = newImages
+        console.log('New images uploaded successfully:', uploadedImages.length)
+      } catch (imageError) {
+        console.error('Error uploading new images (continuing anyway):', imageError)
+      }
+    }
+
+    return { 
+      success: true, 
+      property, 
+      images: uploadedImages
+    }
+  } catch (error) {
+    console.error('Error updating property:', error)
+    throw error
+  }
+}
+
 export function formatFormDataForDB(formData: any, landlordId: string): CreatePropertyData {
   return {
     title: formData.title,
