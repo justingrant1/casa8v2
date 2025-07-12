@@ -57,7 +57,12 @@ CREATE TABLE properties (
   available BOOLEAN DEFAULT true,
   landlord_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  available_date DATE,
+  security_deposit NUMERIC,
+  pet_policy TEXT,
+  contact_phone TEXT,
+  allow_chat BOOLEAN DEFAULT true
 );
 
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
