@@ -118,11 +118,43 @@ export default function ListPropertyPage() {
       return
     }
 
+    // Basic form validation
+    if (!formData.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Property title is required",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!formData.rent || isNaN(Number(formData.rent))) {
+      toast({
+        title: "Validation Error", 
+        description: "Valid rent amount is required",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!formData.propertyType) {
+      toast({
+        title: "Validation Error",
+        description: "Property type is required",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
+      console.log("Starting property creation process...")
+      console.log("Form data:", formData)
+      
       // Format the form data for database insertion
       const propertyData = formatFormDataForDB(formData, user.id)
+      console.log("Formatted property data:", propertyData)
       
       // Create the property with images
       const result = await createPropertyWithImages(propertyData, formData.images)
@@ -134,14 +166,28 @@ export default function ListPropertyPage() {
           description: `Your property has been added with ${imageCount} image${imageCount !== 1 ? 's' : ''}`
         })
         
-        // Redirect to dashboard or property page
-        router.push("/dashboard")
+        // Small delay to ensure toast shows before redirect
+        setTimeout(() => {
+          router.push("/dashboard")
+        }, 1000)
       }
     } catch (error: any) {
       console.error("Error creating property:", error)
+      
+      // More specific error handling
+      let errorMessage = "Something went wrong. Please try again."
+      
+      if (error.message) {
+        errorMessage = error.message
+      } else if (error.error_description) {
+        errorMessage = error.error_description
+      } else if (error.details) {
+        errorMessage = error.details
+      }
+      
       toast({
         title: "Error listing property",
-        description: error.message || "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       })
     } finally {

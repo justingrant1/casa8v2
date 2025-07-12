@@ -75,6 +75,8 @@ export async function uploadPropertyImages(propertyId: string, images: File[]) {
 
 export async function createPropertyWithImages(propertyData: CreatePropertyData, images: File[] = []) {
   try {
+    console.log('Creating property with data:', propertyData)
+    
     // First create the property
     const { data: property, error } = await supabase
       .from('properties')
@@ -87,12 +89,24 @@ export async function createPropertyWithImages(propertyData: CreatePropertyData,
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Database error creating property:', error)
+      throw new Error(`Failed to create property: ${error.message}`)
+    }
+
+    console.log('Property created successfully:', property)
 
     // Upload images if any
     let uploadedImages = []
     if (images.length > 0) {
-      uploadedImages = await uploadPropertyImages(property.id, images)
+      console.log(`Uploading ${images.length} images...`)
+      try {
+        uploadedImages = await uploadPropertyImages(property.id, images)
+        console.log('Images uploaded successfully:', uploadedImages.length)
+      } catch (imageError) {
+        console.error('Error uploading images (continuing anyway):', imageError)
+        // Continue without images rather than failing completely
+      }
     }
 
     return { 
