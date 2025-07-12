@@ -26,34 +26,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id)
-      }
-      
-      setLoading(false)
-    }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
         setUser(session?.user ?? null)
         
         if (session?.user) {
           await fetchProfile(session.user.id)
-        } else {
-          setProfile(null)
         }
-        
+      } catch (error) {
+        console.error('Error getting initial session:', error)
+        // Even if there's an error, we need to stop loading
+        setUser(null)
+        setProfile(null)
+      } finally {
         setLoading(false)
       }
-    )
+    }
 
-    return () => subscription.unsubscribe()
+    getInitialSession()
+
+    // Listen for auth changes with error handling
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          try {
+            setUser(session?.user ?? null)
+            
+            if (session?.user) {
+              await fetchProfile(session.user.id)
+            } else {
+              setProfile(null)
+            }
+          } catch (error) {
+            console.error('Error in auth state change:', error)
+          } finally {
+            setLoading(false)
+          }
+        }
+      )
+
+      return () => subscription.unsubscribe()
+    } catch (error) {
+      console.error('Error setting up auth listener:', error)
+      setLoading(false)
+      return () => {} // Return empty cleanup function
+    }
   }, [])
 
   const fetchProfile = async (userId: string) => {
