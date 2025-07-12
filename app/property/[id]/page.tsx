@@ -226,7 +226,6 @@ export default function PropertyDetailPage() {
   const propertyId = params.id as string
   
   const [property, setProperty] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [applyModal, setApplyModal] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
@@ -235,7 +234,6 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     async function fetchProperty() {
       try {
-        setLoading(true)
         const data = await getPropertyById(propertyId)
         
         if (data) {
@@ -262,10 +260,6 @@ export default function PropertyDetailPage() {
               rating: 4.5,
               properties: 5,
             },
-            availableDate: new Date().toISOString().split('T')[0],
-            leaseTerms: "12 months minimum",
-            deposit: Number(data.price),
-            petPolicy: "Contact landlord for pet policy",
             yearBuilt: 2020,
           }
           setProperty(transformedProperty)
@@ -279,8 +273,6 @@ export default function PropertyDetailPage() {
         // Try fallback data
         const fallbackProperty = fallbackPropertyData[Number(propertyId) as keyof typeof fallbackPropertyData]
         setProperty(fallbackProperty || null)
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -296,6 +288,34 @@ export default function PropertyDetailPage() {
       return
     }
     toggleFavorite(propertyId)
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: property.title,
+      text: `Check out this property: ${property.title} - $${property.price.toLocaleString()}/month`,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(window.location.href)
+        // You could add a toast notification here
+        alert('Link copied to clipboard!')
+      }
+    } catch (error) {
+      console.error('Error sharing:', error)
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        alert('Link copied to clipboard!')
+      } catch (clipboardError) {
+        console.error('Error copying to clipboard:', clipboardError)
+      }
+    }
   }
 
   // Touch handlers for simple swipe detection
@@ -322,17 +342,6 @@ export default function PropertyDetailPage() {
         setCurrentImageIndex(prev => prev - 1)
       }
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading property details...</p>
-        </div>
-      </div>
-    )
   }
 
   if (!property) {
@@ -363,7 +372,7 @@ export default function PropertyDetailPage() {
               <Button variant="outline" size="icon" onClick={handleToggleFavorite}>
                 <Heart className={`w-4 h-4 ${isFavorite(propertyId) ? "fill-red-500 text-red-500" : ""}`} />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={handleShare}>
                 <Share2 className="w-4 h-4" />
               </Button>
             </div>
@@ -487,30 +496,6 @@ export default function PropertyDetailPage() {
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Lease Details */}
-              <div>
-                <h2 className="text-xl font-semibold mb-3">Lease Details</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="font-medium">Available Date</div>
-                    <div className="text-muted-foreground">{property.availableDate}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Lease Terms</div>
-                    <div className="text-muted-foreground">{property.leaseTerms}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Security Deposit</div>
-                    <div className="text-muted-foreground">${property.deposit.toLocaleString()}</div>
-                  </div>
-                  <div>
-                    <div className="font-medium">Pet Policy</div>
-                    <div className="text-muted-foreground">{property.petPolicy}</div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

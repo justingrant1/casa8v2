@@ -42,9 +42,7 @@ export default function ListPropertyPage() {
     sqft: "",
     rent: "",
     deposit: "",
-    availableDate: "",
-    leaseTerms: "",
-    petPolicy: "",
+    negotiableDeposit: false,
     amenities: [] as string[],
     images: [] as File[],
     videos: [] as File[],
@@ -102,9 +100,7 @@ export default function ListPropertyPage() {
         sqft: property.square_feet?.toString() || "",
         rent: property.price?.toString() || "",
         deposit: property.security_deposit?.toString() || "",
-        availableDate: property.available_date || "",
-        leaseTerms: "",
-        petPolicy: property.pet_policy || "",
+        negotiableDeposit: false,
         amenities: property.amenities || [],
         images: [], // New images to upload
         videos: [],
@@ -129,20 +125,16 @@ export default function ListPropertyPage() {
   }
 
   const amenitiesList = [
-    "Air conditioning",
-    "Heating",
+    "Window AC Units",
+    "Central Air Conditioning", 
+    "Stove",
+    "Refrigerator",
     "Dishwasher",
     "Washer/Dryer",
     "Parking",
-    "Gym",
-    "Pool",
-    "Balcony",
-    "Garden",
     "Pet friendly",
     "Furnished",
-    "Internet included",
     "Utilities included",
-    "Security system",
   ]
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -359,23 +351,18 @@ export default function ListPropertyPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="propertyType">Property Type</Label>
-                  <Select
-                    value={formData.propertyType}
-                    onValueChange={(value) => handleInputChange("propertyType", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select property type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="apartment">Apartment</SelectItem>
-                      <SelectItem value="house">House</SelectItem>
-                      <SelectItem value="condo">Condo</SelectItem>
-                      <SelectItem value="studio">Studio</SelectItem>
-                      <SelectItem value="townhouse">Townhouse</SelectItem>
-                      <SelectItem value="duplex">Duplex</SelectItem>
-                      <SelectItem value="penthouse">Penthouse</SelectItem>
-                    </SelectContent>
-                  </Select>
+          <Select
+            value={formData.propertyType}
+            onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select property type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="apartment">Apartment</SelectItem>
+              <SelectItem value="house">House</SelectItem>
+            </SelectContent>
+          </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -496,7 +483,7 @@ export default function ListPropertyPage() {
                   <Input
                     id="sqft"
                     type="number"
-                    placeholder="1200"
+                    placeholder=""
                     value={formData.sqft}
                     onChange={(e) => handleInputChange("sqft", e.target.value)}
                     required
@@ -513,45 +500,26 @@ export default function ListPropertyPage() {
               <CardDescription>Set your rental terms and policies</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="deposit">Security Deposit ($)</Label>
-                  <Input
-                    id="deposit"
-                    type="number"
-                    placeholder="2500"
-                    value={formData.deposit}
-                    onChange={(e) => handleInputChange("deposit", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="availableDate">Available Date</Label>
-                  <Input
-                    id="availableDate"
-                    type="date"
-                    value={formData.availableDate}
-                    onChange={(e) => handleInputChange("availableDate", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <Label htmlFor="petPolicy">Pet Policy</Label>
-                <Select value={formData.petPolicy} onValueChange={(value) => handleInputChange("petPolicy", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select pet policy" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-pets">No pets allowed</SelectItem>
-                    <SelectItem value="cats-only">Cats only</SelectItem>
-                    <SelectItem value="dogs-only">Dogs only</SelectItem>
-                    <SelectItem value="cats-and-dogs">Cats and dogs allowed</SelectItem>
-                    <SelectItem value="all-pets">All pets welcome</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="deposit">Security Deposit ($)</Label>
+                <Input
+                  id="deposit"
+                  type="number"
+                  placeholder=""
+                  value={formData.deposit}
+                  onChange={(e) => handleInputChange("deposit", e.target.value)}
+                  required
+                />
+                <div className="flex items-center space-x-2 mt-2">
+                  <Checkbox
+                    id="negotiableDeposit"
+                    checked={formData.negotiableDeposit || false}
+                    onCheckedChange={(checked) => handleInputChange("negotiableDeposit", checked as boolean)}
+                  />
+                  <Label htmlFor="negotiableDeposit" className="text-sm">
+                    Negotiable
+                  </Label>
+                </div>
               </div>
             </CardContent>
           </Card>

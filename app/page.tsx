@@ -449,7 +449,7 @@ export default function HomePage() {
                   <div className="flex-shrink-0 w-full lg:w-48">
                     <Select>
                       <SelectTrigger className="h-14 text-lg border-0 bg-gray-50 focus:ring-2 focus:ring-primary/20">
-                        <SelectValue placeholder="Bedrooms" />
+                        <SelectValue placeholder="Select # of bedrooms" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="any">Any bedrooms</SelectItem>
