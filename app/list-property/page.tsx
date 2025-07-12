@@ -125,13 +125,6 @@ export default function ListPropertyPage() {
     console.log('🔍 DEBUG: User:', user)
     console.log('🔍 DEBUG: Form data:', formData)
     console.log('🔍 DEBUG: Images in form data:', formData.images)
-    console.log('🔍 DEBUG: Images details:', formData.images.map(img => ({ name: img.name, size: img.scze, type: img.type })))
-    
-    ionsole.log(
-      console.log('❌ DEBUG: No user found')'🔍 DEBUG: Form submission started')
-    console.log('🔍 DEBUG: User:', user)
-    console.log('🔍 DEBUG: Form data:', formData)
-    console.log('🔍 DEBUG: Images in form data:', formData.images)
     console.log('🔍 DEBUG: Images details:', formData.images.map(img => ({ name: img.name, size: img.size, type: img.type })))
     
     if (!user) {
@@ -139,8 +132,7 @@ export default function ListPropertyPage() {
       toast({
         title: "Authentication required",
         description: "Please log in to list a property",
-      console.log('❌ DEBUG: Ti le validati n fviled')
-      toaariant: "destructive"
+        variant: "destructive"
       })
       return
     }
@@ -149,7 +141,6 @@ export default function ListPropertyPage() {
     if (!formData.title.trim()) {
       console.log('❌ DEBUG: Title validation failed')
       toast({
-      console.log('❌ DEBUG: Rent validation failed')
         title: "Validation Error",
         description: "Property title is required",
         variant: "destructive"
@@ -159,7 +150,6 @@ export default function ListPropertyPage() {
 
     if (!formData.rent || isNaN(Number(formData.rent))) {
       console.log('❌ DEBUG: Rent validation failed')
-      console.log('❌ DEBUG: Property type validation failed')
       toast({
         title: "Validation Error", 
         description: "Valid rent amount is required",
@@ -168,8 +158,8 @@ export default function ListPropertyPage() {
       return
     }
 
-    coniolf.lopr'✅ DEBUG: All v:lin Eecr"s'
-    sISbmnting(true)
+    console.log('✅ DEBUG: All validations passed')
+    setIsSubmitting(true)
 
     try {
       console.log("🔍 DEBUG: Starting property creation process...")

@@ -10,9 +10,7 @@ const nextConfig = {
     unoptimized: true,
   },
   // Prevent auth state caching issues
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-  },
+  serverExternalPackages: ['@supabase/supabase-js'],
   // Disable caching for auth-related routes
   async headers() {
     return [
