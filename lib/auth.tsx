@@ -24,53 +24,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+    
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        console.log('🔄 Getting initial session...')
+        const { data: { session }, error } = await supabase.auth.getSession()
         
+        if (error) {
+          console.error('❌ Session error:', error)
+          throw error
+        }
+        
+        if (!mounted) return
+        
+        console.log('📧 Session found:', session?.user?.email || 'No session')
         setUser(session?.user ?? null)
         
         if (session?.user) {
+          console.log('👤 Fetching profile for user:', session.user.id)
           await fetchProfile(session.user.id)
+        } else {
+          setProfile(null)
         }
       } catch (error) {
-        console.error('Error getting initial session:', error)
-        // Even if there's an error, we need to stop loading
-        setUser(null)
-        setProfile(null)
+        console.error('❌ Error getting initial session:', error)
+        if (mounted) {
+          setUser(null)
+          setProfile(null)
+        }
       } finally {
-        setLoading(false)
+        if (mounted) {
+          console.log('✅ Auth initialization complete')
+          setLoading(false)
+        }
       }
     }
 
     getInitialSession()
 
-    // Listen for auth changes with error handling
-    try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          try {
+    // Listen for auth changes with improved error handling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return
+        
+        console.log('🔄 Auth state changed:', event, session?.user?.email || 'No session')
+        
+        try {
+          // Handle different auth events
+          if (event === 'SIGNED_OUT') {
+            console.log('🚪 User signed out')
+            setUser(null)
+            setProfile(null)
+          } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            console.log('🔑 User signed in or token refreshed')
             setUser(session?.user ?? null)
             
             if (session?.user) {
               await fetchProfile(session.user.id)
-            } else {
-              setProfile(null)
             }
-          } catch (error) {
-            console.error('Error in auth state change:', error)
-          } finally {
+          } else if (event === 'USER_UPDATED') {
+            console.log('👤 User updated')
+            setUser(session?.user ?? null)
+          }
+        } catch (error) {
+          console.error('❌ Error in auth state change:', error)
+        } finally {
+          if (mounted) {
             setLoading(false)
           }
         }
-      )
+      }
+    )
 
-      return () => subscription.unsubscribe()
-    } catch (error) {
-      console.error('Error setting up auth listener:', error)
-      setLoading(false)
-      return () => {} // Return empty cleanup function
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
     }
   }, [])
 
@@ -175,25 +205,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Clear local state first
+      console.log('🔐 Starting sign out process...')
+      
+      // Clear local state immediately
       setUser(null)
       setProfile(null)
       setLoading(false)
       
-      // Clear Supabase session
-      await supabase.auth.signOut()
+      // Clear Supabase session with scope options
+      await supabase.auth.signOut({
+        scope: 'global' // Sign out from all sessions
+      })
       
-      // Clear any cached data
+      // Clear browser storage
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
+        
+        // Clear any service worker caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys()
+          await Promise.all(cacheNames.map(name => caches.delete(name)))
+        }
       }
       
-      // Force redirect to home page
+      console.log('✅ Sign out completed successfully')
+      
+      // Use router push with full page reload to ensure clean state
       window.location.href = '/'
     } catch (error) {
-      console.error('Error signing out:', error)
-      // Even if signOut fails, redirect to clear state
+      console.error('❌ Error during sign out:', error)
+      // Force redirect even if signOut fails
       window.location.href = '/'
     }
   }

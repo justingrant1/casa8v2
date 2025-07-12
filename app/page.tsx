@@ -120,7 +120,13 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              {user ? (
+              {loading ? (
+                // Show minimal loading state
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-gray-600">Loading...</span>
+                </div>
+              ) : user ? (
                 <>
                   <span className="text-sm font-medium text-gray-700 hidden md:block">
                     Welcome, {profile?.full_name || user.email}!
@@ -133,8 +139,8 @@ export default function HomePage() {
                       <span className="md:hidden">♥</span>
                     </Button>
                   </Link>
-                  {/* Only show Dashboard for landlords */}
-                  {profile?.role === 'landlord' && (
+                  {/* Show Dashboard for landlords - include loading state for profile */}
+                  {(profile?.role === 'landlord' || (!profile && user)) && (
                     <Link href="/dashboard">
                       <Button variant="ghost" className="font-medium">
                         Dashboard
@@ -144,8 +150,8 @@ export default function HomePage() {
                   <Button variant="outline" className="font-medium bg-transparent" onClick={handleSignOut}>
                     Logout
                   </Button>
-                  {/* Only show Post Listing for landlords */}
-                  {profile?.role === 'landlord' && (
+                  {/* Show Post Listing for landlords or while profile is loading */}
+                  {(profile?.role === 'landlord' || (!profile && user)) && (
                     <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
                       Post Listing
                     </Button>
