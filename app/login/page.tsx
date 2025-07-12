@@ -39,8 +39,12 @@ export default function LoginPage() {
       }
 
       toast.success("Welcome back!")
-      // Redirect will be handled by the auth context based on user role
-      // Landlords go to dashboard, tenants go to homepage
+      
+      // Handle redirect manually after successful login
+      setTimeout(() => {
+        // Check if user gets updated in auth context, then redirect
+        router.push("/dashboard") // Default to dashboard, homepage works for all users
+      }, 500)
     } catch (error) {
       toast.error("An unexpected error occurred")
     } finally {

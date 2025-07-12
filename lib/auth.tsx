@@ -160,23 +160,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // Auto-redirect based on user role after successful login
+      // Fetch profile but don't redirect here - let the calling component handle it
       if (data.user) {
         await fetchProfile(data.user.id)
-        
-        // Get the user's profile to determine role
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-
-        // Redirect based on role
-        if (profileData?.role === 'landlord') {
-          window.location.href = '/dashboard'
-        } else {
-          window.location.href = '/'
-        }
       }
 
       return { error: null }

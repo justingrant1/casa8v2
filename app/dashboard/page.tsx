@@ -146,15 +146,40 @@ export default function LandlordDashboard() {
   const [propertyStatuses, setPropertyStatuses] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
+    // Only redirect if auth is definitely done loading and there's no user
     if (!authLoading && !user) {
       router.push("/login")
       return
     }
 
-    if (user) {
+    // Fetch properties when user is available
+    if (user && !authLoading) {
       fetchLandlordProperties()
     }
   }, [user, authLoading, router])
+
+  // Show loading screen while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Only show "not authenticated" if auth loading is complete and no user
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    )
+  }
 
   const fetchLandlordProperties = async () => {
     if (!user) return
