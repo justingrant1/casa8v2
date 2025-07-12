@@ -15,7 +15,7 @@ interface ApplyPropertyModalProps {
   onClose: () => void
   property: {
     title: string
-    id: string
+    id: number
   }
 }
 

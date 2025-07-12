@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,8 +11,6 @@ import Link from "next/link"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { ApplyPropertyModal } from "@/components/apply-property-modal"
-import { getPropertyById, type PropertyWithDetails } from "@/lib/properties"
-import { useToast } from "@/hooks/use-toast"
 
 // Mock property data
 const propertyData = {
@@ -219,51 +217,15 @@ const propertyData = {
 export default function PropertyDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { toast } = useToast()
-  const propertyId = params.id as string
+  const propertyId = Number.parseInt(params.id as string)
+  const property = propertyData[propertyId as keyof typeof propertyData]
 
-  const [property, setProperty] = useState<PropertyWithDetails | null>(null)
-  const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFavorited, setIsFavorited] = useState(false)
   const [applyModal, setApplyModal] = useState(false)
 
-  useEffect(() => {
-    const fetchProperty = async () => {
-      try {
-        setLoading(true)
-        const propertyData = await getPropertyById(propertyId)
-        setProperty(propertyData)
-      } catch (err) {
-        console.error('Error fetching property:', err)
-        toast({
-          title: "Error loading property",
-          description: "Could not load property details.",
-          variant: "destructive"
-        })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (propertyId) {
-      fetchProperty()
-    }
-  }, [propertyId, toast])
-
   const openApplyModal = () => setApplyModal(true)
   const closeApplyModal = () => setApplyModal(false)
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading property details...</p>
-        </div>
-      </div>
-    )
-  }
 
   if (!property) {
     return (
@@ -277,18 +239,6 @@ export default function PropertyDetailPage() {
       </div>
     )
   }
-
-  // Get property images or use placeholder
-  const propertyImages = property.property_images?.length 
-    ? property.property_images
-        .sort((a, b) => a.order_index - b.order_index)
-        .map(img => img.image_url)
-    : ['/placeholder.svg?height=400&width=600']
-
-  // Format property data for display
-  const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip_code}`
-  const landlordName = property.profiles?.full_name || property.profiles?.email || 'Property Owner'
-  const landlordPhone = 'Contact via email'
 
   return (
     <div className="min-h-screen bg-background">
@@ -320,13 +270,13 @@ export default function PropertyDetailPage() {
             <div className="space-y-4">
               <div className="relative">
                 <Image
-                  src={propertyImages[currentImageIndex] || "/placeholder.svg"}
+                  src={property.images[currentImageIndex] || "/placeholder.svg"}
                   alt={property.title}
                   width={600}
                   height={400}
                   className="w-full h-96 object-cover rounded-lg"
                 />
-                <Badge className="absolute top-4 left-4 capitalize">{property.property_type.replace('_', ' ')}</Badge>
+                <Badge className="absolute top-4 left-4">{property.type}</Badge>
                 {!property.available && (
                   <Badge variant="destructive" className="absolute top-4 right-4">
                     Not Available
@@ -334,27 +284,25 @@ export default function PropertyDetailPage() {
                 )}
               </div>
 
-              {propertyImages.length > 1 && (
-                <div className="grid grid-cols-4 gap-2">
-                  {propertyImages.map((image: string, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`relative rounded-lg overflow-hidden ${
-                        currentImageIndex === index ? "ring-2 ring-primary" : ""
-                      }`}
-                    >
-                      <Image
-                        src={image || "/placeholder.svg"}
-                        alt={`Property image ${index + 1}`}
-                        width={150}
-                        height={100}
-                        className="w-full h-20 object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-4 gap-2">
+                {property.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative rounded-lg overflow-hidden ${
+                      currentImageIndex === index ? "ring-2 ring-primary" : ""
+                    }`}
+                  >
+                    <Image
+                      src={image || "/placeholder.svg"}
+                      alt={`Property image ${index + 1}`}
+                      width={150}
+                      height={100}
+                      className="w-full h-20 object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Property Info */}
@@ -363,7 +311,7 @@ export default function PropertyDetailPage() {
                 <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
                 <div className="flex items-center text-muted-foreground mb-4">
                   <MapPin className="w-4 h-4 mr-1" />
-                  <span>{fullAddress}</span>
+                  <span>{property.fullAddress}</span>
                 </div>
 
                 <div className="flex items-center space-x-8 text-lg font-medium mb-4">
@@ -373,18 +321,17 @@ export default function PropertyDetailPage() {
                   </div>
                   <div className="flex items-center">
                     <Bath className="w-6 h-6 mr-2" />
-                    <span>{Number(property.bathrooms)} bathrooms</span>
+                    <span>{property.bathrooms} bathrooms</span>
                   </div>
-                  {property.square_feet && (
-                    <div className="flex items-center">
-                      <Square className="w-6 h-6 mr-2" />
-                      <span>{property.square_feet} sqft</span>
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <Square className="w-6 h-6 mr-2" />
+                    <span>{property.sqft} sqft</span>
+                  </div>
                 </div>
+                <div className="text-muted-foreground mb-4">Built in {property.yearBuilt}</div>
 
                 <div className="text-3xl font-bold text-primary mb-2">
-                  ${Number(property.price).toLocaleString()}
+                  ${property.price.toLocaleString()}
                   <span className="text-lg text-muted-foreground">/month</span>
                 </div>
               </div>
@@ -398,41 +345,39 @@ export default function PropertyDetailPage() {
               <Separator />
 
               {/* Amenities */}
-              {property.amenities && property.amenities.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-semibold mb-3">Amenities</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {property.amenities.map((amenity: string, index: number) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-primary rounded-full" />
-                        <span className="text-sm">{amenity}</span>
-                      </div>
-                    ))}
-                  </div>
+              <div>
+                <h2 className="text-xl font-semibold mb-3">Amenities</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {property.amenities.map((amenity, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                      <span className="text-sm">{amenity}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <Separator />
 
-              {/* Property Details */}
+              {/* Lease Details */}
               <div>
-                <h2 className="text-xl font-semibold mb-3">Property Details</h2>
+                <h2 className="text-xl font-semibold mb-3">Lease Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="font-medium">Property Type</div>
-                    <div className="text-muted-foreground capitalize">{property.property_type.replace('_', ' ')}</div>
+                    <div className="font-medium">Available Date</div>
+                    <div className="text-muted-foreground">{property.availableDate}</div>
                   </div>
                   <div>
-                    <div className="font-medium">Status</div>
-                    <div className="text-muted-foreground">{property.available ? 'Available' : 'Not Available'}</div>
+                    <div className="font-medium">Lease Terms</div>
+                    <div className="text-muted-foreground">{property.leaseTerms}</div>
                   </div>
                   <div>
-                    <div className="font-medium">Listed</div>
-                    <div className="text-muted-foreground">{new Date(property.created_at).toLocaleDateString()}</div>
+                    <div className="font-medium">Security Deposit</div>
+                    <div className="text-muted-foreground">${property.deposit.toLocaleString()}</div>
                   </div>
                   <div>
-                    <div className="font-medium">Last Updated</div>
-                    <div className="text-muted-foreground">{new Date(property.updated_at).toLocaleDateString()}</div>
+                    <div className="font-medium">Pet Policy</div>
+                    <div className="text-muted-foreground">{property.petPolicy}</div>
                   </div>
                 </div>
               </div>
@@ -469,18 +414,18 @@ export default function PropertyDetailPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3">
                   <Avatar>
-                    <AvatarImage src="/placeholder.svg" />
+                    <AvatarImage src={property.landlord.avatar || "/placeholder.svg"} />
                     <AvatarFallback>
-                      {landlordName
+                      {property.landlord.name
                         .split(" ")
-                        .map((n: string) => n[0])
+                        .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-semibold">{landlordName}</div>
+                    <div className="font-semibold">{property.landlord.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      Property Owner
+                      ⭐ {property.landlord.rating} • {property.landlord.properties} properties
                     </div>
                   </div>
                 </div>
@@ -488,7 +433,7 @@ export default function PropertyDetailPage() {
                 <div className="space-y-2">
                   <Button variant="outline" className="w-full justify-start bg-transparent">
                     <Phone className="w-4 h-4 mr-2" />
-                    {landlordPhone}
+                    {property.landlord.phone}
                   </Button>
                 </div>
               </CardContent>
