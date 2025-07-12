@@ -121,18 +121,35 @@ export default function ListPropertyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('🔍 DEBUG: Form submission started')
+    console.log('🔍 DEBUG: User:', user)
+    console.log('🔍 DEBUG: Form data:', formData)
+    console.log('🔍 DEBUG: Images in form data:', formData.images)
+    console.log('🔍 DEBUG: Images details:', formData.images.map(img => ({ name: img.name, size: img.scze, type: img.type })))
+    
+    ionsole.log(
+      console.log('❌ DEBUG: No user found')'🔍 DEBUG: Form submission started')
+    console.log('🔍 DEBUG: User:', user)
+    console.log('🔍 DEBUG: Form data:', formData)
+    console.log('🔍 DEBUG: Images in form data:', formData.images)
+    console.log('🔍 DEBUG: Images details:', formData.images.map(img => ({ name: img.name, size: img.size, type: img.type })))
+    
     if (!user) {
+      console.log('❌ DEBUG: No user found')
       toast({
         title: "Authentication required",
         description: "Please log in to list a property",
-        variant: "destructive"
+      console.log('❌ DEBUG: Ti le validati n fviled')
+      toaariant: "destructive"
       })
       return
     }
 
     // Basic form validation
     if (!formData.title.trim()) {
+      console.log('❌ DEBUG: Title validation failed')
       toast({
+      console.log('❌ DEBUG: Rent validation failed')
         title: "Validation Error",
         description: "Property title is required",
         variant: "destructive"
@@ -141,6 +158,8 @@ export default function ListPropertyPage() {
     }
 
     if (!formData.rent || isNaN(Number(formData.rent))) {
+      console.log('❌ DEBUG: Rent validation failed')
+      console.log('❌ DEBUG: Property type validation failed')
       toast({
         title: "Validation Error", 
         description: "Valid rent amount is required",
@@ -149,30 +168,25 @@ export default function ListPropertyPage() {
       return
     }
 
-    if (!formData.propertyType) {
-      toast({
-        title: "Validation Error",
-        description: "Property type is required",
-        variant: "destructive"
-      })
-      return
-    }
-
-    setIsSubmitting(true)
+    coniolf.lopr'✅ DEBUG: All v:lin Eecr"s'
+    sISbmnting(true)
 
     try {
-      console.log("Starting property creation process...")
-      console.log("Form data:", formData)
+      console.log("🔍 DEBUG: Starting property creation process...")
+      console.log("🔍 DEBUG: Form data:", formData)
       
       // Format the form data for database insertion
       const propertyData = formatFormDataForDB(formData, user.id)
-      console.log("Formatted property data:", propertyData)
+      console.log("🔍 DEBUG: Formatted property data:", propertyData)
+      console.log("🔍 DEBUG: About to call createPropertyWithImages with images:", formData.images.length)
       
       // Create the property with images
       const result = await createPropertyWithImages(propertyData, formData.images)
+      console.log("🔍 DEBUG: createPropertyWithImages result:", result)
       
       if (result.success) {
         const imageCount = result.images?.length || 0
+        console.log("✅ DEBUG: Property creation successful with", imageCount, "images")
         toast({
           title: "Property listed successfully!",
           description: `Your property has been added with ${imageCount} image${imageCount !== 1 ? 's' : ''}`
@@ -184,7 +198,7 @@ export default function ListPropertyPage() {
         }, 1000)
       }
     } catch (error: any) {
-      console.error("Error creating property:", error)
+      console.error("❌ DEBUG: Error creating property:", error)
       
       // More specific error handling
       let errorMessage = "Something went wrong. Please try again."

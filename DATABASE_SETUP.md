@@ -94,6 +94,7 @@ ALTER TABLE property_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_favorites ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can view property images" ON property_images FOR SELECT USING (true);
+CREATE POLICY "Landlords can insert images for their properties" ON property_images FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM properties WHERE properties.id = property_images.property_id AND properties.landlord_id = auth.uid()));
 CREATE POLICY "Users can manage their favorites" ON user_favorites FOR ALL USING (auth.uid() = user_id);
 ```
 

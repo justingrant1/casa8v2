@@ -147,14 +147,29 @@ export default function LandlordDashboard() {
   const [propertyStatuses, setPropertyStatuses] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
+    console.log('🔍 Dashboard useEffect - authLoading:', authLoading, 'user:', !!user, 'user.id:', user?.id)
+    
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('⚠️ Dashboard timeout - forcing loading to false')
+        setLoading(false)
+        setLandlordProperties([])
+      }
+    }, 10000) // 10 second timeout
+
     // Only redirect if auth is definitely done loading and there's no user
     if (!authLoading && !user) {
+      console.log('🔍 No user, redirecting to login')
+      clearTimeout(timeoutId)
       router.push("/login")
       return
     }
 
     // Check if user is a landlord - only landlords should access dashboard
     if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
+      console.log('🔍 User is not landlord, redirecting home')
+      clearTimeout(timeoutId)
       // Redirect tenants back to homepage with message
       toast({
         title: "Access Denied",
@@ -167,8 +182,11 @@ export default function LandlordDashboard() {
 
     // Fetch properties when user is available
     if (user && !authLoading) {
+      console.log('🔍 User available, fetching properties')
       fetchLandlordProperties()
     }
+
+    return () => clearTimeout(timeoutId)
   }, [user, authLoading, router])
 
   // Show loading screen while auth is loading
@@ -195,11 +213,19 @@ export default function LandlordDashboard() {
   }
 
   const fetchLandlordProperties = async () => {
-    if (!user) return
+    if (!user) {
+      console.log('DEBUG: No user available for fetching properties')
+      return
+    }
     
     try {
+      console.log('DEBUG: Fetching properties for user:', user.id)
+      console.log('DEBUG: User metadata:', user.user_metadata)
+      
       setLoading(true)
       const properties = await getLandlordProperties(user.id)
+      console.log('DEBUG: Fetched properties:', properties)
+      
       setLandlordProperties(properties)
       
       // Initialize property statuses
@@ -209,12 +235,14 @@ export default function LandlordDashboard() {
       }, {})
       setPropertyStatuses(statuses)
     } catch (error) {
-      console.error('Error fetching properties:', error)
+      console.error('ERROR: Fetching properties failed:', error)
       toast({
         title: "Error loading properties",
         description: "Failed to load your properties. Please try again.",
         variant: "destructive"
       })
+      // Set empty array on error to stop loading state
+      setLandlordProperties([])
     } finally {
       setLoading(false)
     }
