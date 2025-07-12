@@ -386,7 +386,7 @@ export default function PropertyDetailPage() {
                 <div 
                   className="flex w-full h-96 transition-transform duration-300 ease-out"
                   style={{
-                    transform: `translateX(${-currentImageIndex * 100}%)`,
+                    transform: `translateX(${-currentImageIndex * (100 / property.images.length)}%)`,
                     width: `${property.images.length * 100}%`
                   }}
                 >

@@ -87,7 +87,7 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
           <div 
             className="flex w-full h-full transition-transform duration-300 ease-out"
             style={{
-              transform: `translateX(${-currentImageIndex * 100}%)`,
+              transform: `translateX(${-currentImageIndex * (100 / images.length)}%)`,
               width: `${images.length * 100}%`
             }}
           >
