@@ -229,6 +229,8 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [applyModal, setApplyModal] = useState(false)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
   useEffect(() => {
     async function fetchProperty() {
@@ -296,6 +298,32 @@ export default function PropertyDetailPage() {
     toggleFavorite(propertyId)
   }
 
+  // Touch handlers for swipe detection
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || !property) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (property.images && property.images.length > 1) {
+      if (isLeftSwipe && currentImageIndex < property.images.length - 1) {
+        setCurrentImageIndex(prev => prev + 1)
+      } else if (isRightSwipe && currentImageIndex > 0) {
+        setCurrentImageIndex(prev => prev - 1)
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -349,7 +377,12 @@ export default function PropertyDetailPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Image Gallery */}
             <div className="space-y-4">
-              <div className="relative">
+              <div 
+                className="relative touch-pan-y"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 <Image
                   src={property.images[currentImageIndex] || "/placeholder.svg"}
                   alt={property.title}

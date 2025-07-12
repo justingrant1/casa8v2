@@ -24,25 +24,66 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
   openContactModal: (property: any) => void
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  
   const images = property.images || [property.image]
   const hasMultipleImages = images.length > 1
 
-  const nextImage = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const nextImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
 
-  const prevImage = (e: React.MouseEvent) => {
+  const prevImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
+  // Touch handlers for swipe detection
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+    
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (hasMultipleImages) {
+      if (isLeftSwipe) {
+        nextImage()
+      } else if (isRightSwipe) {
+        prevImage()
+      }
+    }
   }
 
   return (
     <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg group">
       <div className="relative overflow-hidden">
-        <div className="relative h-64">
+        <div 
+          className="relative h-64 touch-pan-y"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           <Image
             src={images[currentImageIndex] || "/placeholder.svg"}
             alt={property.title}
