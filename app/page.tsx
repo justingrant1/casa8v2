@@ -88,31 +88,8 @@ export default function HomePage() {
     toggleFavorite(propertyId)
   }
 
-  // Add timeout for loading state to prevent infinite loading in Chrome
-  const [forceRender, setForceRender] = useState(false)
-  
-  // Use useEffect instead of useState for side effects
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Forcing render after loading timeout')
-        setForceRender(true)
-      }
-    }, 8000) // 8 second timeout
-    
-    return () => clearTimeout(timeout)
-  }, [loading])
-
-  if (loading && !forceRender) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
-  }
+  // No need to show loading screen on homepage - content can render immediately
+  // Auth-dependent features will show/hide as auth status loads
 
   return (
     <div className="min-h-screen bg-background">
