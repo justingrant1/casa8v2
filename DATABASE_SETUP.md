@@ -100,6 +100,10 @@ CREATE POLICY "Users can manage their favorites" ON user_favorites FOR ALL USING
 ### 4. Storage Setup
 ```sql
 INSERT INTO storage.buckets (id, name, public) VALUES ('property-images', 'property-images', true);
+
+create policy "Allow authenticated users to upload to property-images"
+on storage.objects for insert
+with check (bucket_id = 'property-images' and auth.role() = 'authenticated');
 ```
 
 ## Environment Variables
