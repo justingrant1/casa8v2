@@ -231,6 +231,8 @@ export default function PropertyDetailPage() {
   const [applyModal, setApplyModal] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState(0)
 
   useEffect(() => {
     async function fetchProperty() {
@@ -298,17 +300,27 @@ export default function PropertyDetailPage() {
     toggleFavorite(propertyId)
   }
 
-  // Touch handlers for swipe detection
+  // Touch handlers for smooth swipe detection
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
+    setIsDragging(true)
+    setDragOffset(0)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
+    if (!touchStart) return
+    
+    const currentX = e.targetTouches[0].clientX
+    const diff = touchStart - currentX
+    setTouchEnd(currentX)
+    setDragOffset(diff)
   }
 
   const onTouchEnd = () => {
+    setIsDragging(false)
+    setDragOffset(0)
+    
     if (!touchStart || !touchEnd || !property) return
     
     const distance = touchStart - touchEnd
@@ -378,18 +390,31 @@ export default function PropertyDetailPage() {
             {/* Image Gallery */}
             <div className="space-y-4">
               <div 
-                className="relative touch-pan-y"
+                className="relative touch-pan-y overflow-hidden rounded-lg"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
-                <Image
-                  src={property.images[currentImageIndex] || "/placeholder.svg"}
-                  alt={property.title}
-                  width={600}
-                  height={400}
-                  className="w-full h-96 object-cover rounded-lg"
-                />
+                <div 
+                  className="flex w-full h-96"
+                  style={{
+                    transform: `translateX(${-currentImageIndex * 100 - (dragOffset / 4)}%)`,
+                    transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+                    width: `${property.images.length * 100}%`
+                  }}
+                >
+                  {property.images.map((image: string, index: number) => (
+                    <div key={index} className="w-full h-full flex-shrink-0">
+                      <Image
+                        src={image || "/placeholder.svg"}
+                        alt={`${property.title} - Image ${index + 1}`}
+                        width={600}
+                        height={400}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
                 <Badge className="absolute top-4 left-4">{property.type}</Badge>
                 {!property.available && (
                   <Badge variant="destructive" className="absolute top-4 right-4">

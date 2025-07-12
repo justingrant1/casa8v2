@@ -26,6 +26,8 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState(0)
   
   const images = property.images || [property.image]
   const hasMultipleImages = images.length > 1
@@ -46,19 +48,29 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  // Touch handlers for swipe detection
+  // Touch handlers for smooth swipe detection
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
+    setIsDragging(true)
+    setDragOffset(0)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
+    if (!touchStart) return
+    
+    const currentX = e.targetTouches[0].clientX
+    const diff = touchStart - currentX
+    setTouchEnd(currentX)
+    setDragOffset(diff)
   }
 
   const onTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    setIsDragging(false)
+    setDragOffset(0)
     
     if (!touchStart || !touchEnd) return
     
@@ -79,18 +91,31 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
     <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg group">
       <div className="relative overflow-hidden">
         <div 
-          className="relative h-64 touch-pan-y"
+          className="relative h-64 touch-pan-y overflow-hidden"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          <Image
-            src={images[currentImageIndex] || "/placeholder.svg"}
-            alt={property.title}
-            width={400}
-            height={280}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+          <div 
+            className="flex w-full h-full"
+            style={{
+              transform: `translateX(${-currentImageIndex * 100 - (dragOffset / 4)}%)`,
+              transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+              width: `${images.length * 100}%`
+            }}
+          >
+            {images.map((image: string, index: number) => (
+              <div key={index} className="w-full h-full flex-shrink-0">
+                <Image
+                  src={image || "/placeholder.svg"}
+                  alt={`${property.title} - Image ${index + 1}`}
+                  width={400}
+                  height={280}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {hasMultipleImages && (
