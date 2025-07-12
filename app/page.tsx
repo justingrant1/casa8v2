@@ -14,6 +14,167 @@ import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+// Property Card Component with Carousel
+function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, openContactModal }: {
+  property: any
+  onToggleFavorite: (id: string) => void
+  isFavorite: (id: string) => boolean
+  openContactModal: (property: any) => void
+}) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const images = property.images || [property.image]
+  const hasMultipleImages = images.length > 1
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
+  return (
+    <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg group">
+      <div className="relative overflow-hidden">
+        <div className="relative h-64">
+          <Image
+            src={images[currentImageIndex] || "/placeholder.svg"}
+            alt={property.title}
+            width={400}
+            height={280}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        {hasMultipleImages && (
+          <>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={prevImage}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={nextImage}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {images.map((_: any, index: number) => (
+                <button
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentImageIndex(index)
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        <Button
+          size="icon"
+          variant="secondary"
+          className="absolute top-4 right-4 h-10 w-10 bg-white/90 hover:bg-white shadow-lg"
+          onClick={(e) => {
+            e.preventDefault()
+            onToggleFavorite(property.id)
+          }}
+        >
+          <Heart 
+            className={`h-5 w-5 transition-colors ${
+              isFavorite(property.id) 
+                ? 'fill-red-500 text-red-500' 
+                : 'text-gray-600'
+            }`} 
+          />
+        </Button>
+
+        <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900 font-medium px-3 py-1">
+          {property.type}
+        </Badge>
+
+        {hasMultipleImages && (
+          <Badge className="absolute bottom-4 left-4 bg-black/50 text-white font-medium px-2 py-1 text-xs">
+            {images.length} photos
+          </Badge>
+        )}
+      </div>
+
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <CardTitle className="text-xl font-bold mb-2 line-clamp-2">{property.title}</CardTitle>
+            <div className="flex items-center text-gray-600">
+              <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+              <span className="text-sm">{property.location}</span>
+            </div>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-3xl font-bold text-primary">${property.price.toLocaleString()}</div>
+            <div className="text-sm text-gray-500 font-medium">per month</div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
+          <div className="flex items-center text-center">
+            <Bed className="h-5 w-5 mr-2 text-primary" />
+            <div>
+              <div className="font-bold text-lg">{property.bedrooms}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide">Beds</div>
+            </div>
+          </div>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <div className="flex items-center text-center">
+            <Bath className="h-5 w-5 mr-2 text-primary" />
+            <div>
+              <div className="font-bold text-lg">{property.bathrooms}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide">Baths</div>
+            </div>
+          </div>
+          <div className="w-px h-8 bg-gray-300"></div>
+          <div className="flex items-center text-center">
+            <Square className="h-5 w-5 mr-2 text-primary" />
+            <div>
+              <div className="font-bold text-lg">{property.sqft}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide">Sqft</div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex gap-3 pt-0">
+        <Link href={`/property/${property.id}`} className="flex-1">
+          <Button variant="outline" className="w-full font-medium h-12 bg-transparent">
+            View Details
+          </Button>
+        </Link>
+        <Button className="flex-1 font-medium h-12" onClick={() => openContactModal(property)}>
+          Contact Now
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+}
 
 export default function HomePage() {
   const router = useRouter()
@@ -295,95 +456,13 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {properties.map((property) => (
-              <Card
-                key={property.id}
-                className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg group"
-              >
-                <div className="relative overflow-hidden">
-                  <Image
-                    src={property.image || "/placeholder.svg"}
-                    alt={property.title}
-                    width={400}
-                    height={280}
-                    className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="absolute top-4 right-4 h-10 w-10 bg-white/90 hover:bg-white shadow-lg"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleToggleFavorite(property.id)
-                    }}
-                  >
-                    <Heart 
-                      className={`h-5 w-5 transition-colors ${
-                        isFavorite(property.id) 
-                          ? 'fill-red-500 text-red-500' 
-                          : 'text-gray-600'
-                      }`} 
-                    />
-                  </Button>
-                  <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900 font-medium px-3 py-1">
-                    {property.type}
-                  </Badge>
-                </div>
-
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl font-bold mb-2 line-clamp-2">{property.title}</CardTitle>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="text-sm">{property.location}</span>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-3xl font-bold text-primary">${property.price.toLocaleString()}</div>
-                      <div className="text-sm text-gray-500 font-medium">per month</div>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between bg-gray-50 rounded-xl p-4">
-                    <div className="flex items-center text-center">
-                      <Bed className="h-5 w-5 mr-2 text-primary" />
-                      <div>
-                        <div className="font-bold text-lg">{property.bedrooms}</div>
-                        <div className="text-xs text-gray-600 uppercase tracking-wide">Beds</div>
-                      </div>
-                    </div>
-                    <div className="w-px h-8 bg-gray-300"></div>
-                    <div className="flex items-center text-center">
-                      <Bath className="h-5 w-5 mr-2 text-primary" />
-                      <div>
-                        <div className="font-bold text-lg">{property.bathrooms}</div>
-                        <div className="text-xs text-gray-600 uppercase tracking-wide">Baths</div>
-                      </div>
-                    </div>
-                    <div className="w-px h-8 bg-gray-300"></div>
-                    <div className="flex items-center text-center">
-                      <Square className="h-5 w-5 mr-2 text-primary" />
-                      <div>
-                        <div className="font-bold text-lg">{property.sqft}</div>
-                        <div className="text-xs text-gray-600 uppercase tracking-wide">Sqft</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex gap-3 pt-0">
-                  <Link href={`/property/${property.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full font-medium h-12 bg-transparent">
-                      View Details
-                    </Button>
-                  </Link>
-                  <Button className="flex-1 font-medium h-12" onClick={() => openContactModal(property)}>
-                    Contact Now
-                  </Button>
-                </CardFooter>
-              </Card>
+              <PropertyCardWithCarousel 
+                key={property.id} 
+                property={property} 
+                onToggleFavorite={handleToggleFavorite} 
+                isFavorite={isFavorite}
+                openContactModal={openContactModal}
+              />
             ))}
           </div>
         </div>

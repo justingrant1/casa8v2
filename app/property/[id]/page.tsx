@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -11,9 +11,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { ApplyPropertyModal } from "@/components/apply-property-modal"
+import { getPropertyById } from "@/lib/properties"
+import { useAuth } from "@/lib/auth"
+import { useFavorites } from "@/lib/favorites-context"
 
-// Mock property data
-const propertyData = {
+// Fallback property data for demonstration
+const fallbackPropertyData = {
   1: {
     id: 1,
     title: "Modern Downtown Apartment",
@@ -217,21 +220,99 @@ const propertyData = {
 export default function PropertyDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const propertyId = Number.parseInt(params.id as string)
-  const property = propertyData[propertyId as keyof typeof propertyData]
-
+  const { user } = useAuth()
+  const { isFavorite, toggleFavorite } = useFavorites()
+  
+  const propertyId = params.id as string
+  
+  const [property, setProperty] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [isFavorited, setIsFavorited] = useState(false)
   const [applyModal, setApplyModal] = useState(false)
+
+  useEffect(() => {
+    async function fetchProperty() {
+      try {
+        setLoading(true)
+        const data = await getPropertyById(propertyId)
+        
+        if (data) {
+          // Transform database property to match expected format
+          const transformedProperty = {
+            id: data.id,
+            title: data.title,
+            price: Number(data.price),
+            location: `${data.city}, ${data.state}`,
+            fullAddress: data.address,
+            bedrooms: data.bedrooms,
+            bathrooms: Number(data.bathrooms),
+            sqft: data.square_feet || 0,
+            type: data.property_type,
+            description: data.description || "No description available.",
+            amenities: data.amenities || [],
+            available: data.available,
+            images: data.property_images?.map((img: { image_url: string }) => img.image_url) || ["/placeholder.svg"],
+            landlord: {
+              name: data.profiles?.full_name || "Property Owner",
+              avatar: "/placeholder.svg",
+              phone: (data.profiles as any)?.phone || "Contact via email",
+              email: data.profiles?.email || "owner@example.com",
+              rating: 4.5,
+              properties: 5,
+            },
+            availableDate: new Date().toISOString().split('T')[0],
+            leaseTerms: "12 months minimum",
+            deposit: Number(data.price),
+            petPolicy: "Contact landlord for pet policy",
+            yearBuilt: 2020,
+          }
+          setProperty(transformedProperty)
+        } else {
+          // Fall back to mock data if property not found in database
+          const fallbackProperty = fallbackPropertyData[Number(propertyId) as keyof typeof fallbackPropertyData]
+          setProperty(fallbackProperty || null)
+        }
+      } catch (error) {
+        console.error('Error fetching property:', error)
+        // Try fallback data
+        const fallbackProperty = fallbackPropertyData[Number(propertyId) as keyof typeof fallbackPropertyData]
+        setProperty(fallbackProperty || null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProperty()
+  }, [propertyId])
 
   const openApplyModal = () => setApplyModal(true)
   const closeApplyModal = () => setApplyModal(false)
+
+  const handleToggleFavorite = () => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    toggleFavorite(propertyId)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading property details...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!property) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
+          <p className="text-gray-600 mb-4">The property you're looking for doesn't exist or has been removed.</p>
           <Link href="/">
             <Button>Back to Home</Button>
           </Link>
@@ -251,8 +332,8 @@ export default function PropertyDetailPage() {
               Back
             </Button>
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="icon" onClick={() => setIsFavorited(!isFavorited)}>
-                <Heart className={`w-4 h-4 ${isFavorited ? "fill-red-500 text-red-500" : ""}`} />
+              <Button variant="outline" size="icon" onClick={handleToggleFavorite}>
+                <Heart className={`w-4 h-4 ${isFavorite(propertyId) ? "fill-red-500 text-red-500" : ""}`} />
               </Button>
               <Button variant="outline" size="icon">
                 <Share2 className="w-4 h-4" />
@@ -285,7 +366,7 @@ export default function PropertyDetailPage() {
               </div>
 
               <div className="grid grid-cols-4 gap-2">
-                {property.images.map((image, index) => (
+                {property.images.map((image: string, index: number) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
@@ -348,7 +429,7 @@ export default function PropertyDetailPage() {
               <div>
                 <h2 className="text-xl font-semibold mb-3">Amenities</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {property.amenities.map((amenity, index) => (
+                  {property.amenities.map((amenity: string, index: number) => (
                     <div key={index} className="flex items-center space-x-2">
                       <div className="w-2 h-2 bg-primary rounded-full" />
                       <span className="text-sm">{amenity}</span>
@@ -418,7 +499,7 @@ export default function PropertyDetailPage() {
                     <AvatarFallback>
                       {property.landlord.name
                         .split(" ")
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>

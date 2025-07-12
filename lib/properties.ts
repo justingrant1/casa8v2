@@ -227,8 +227,9 @@ export async function deleteProperty(id: string) {
 
 // Convert database property to frontend format for compatibility
 export function formatPropertyForFrontend(property: PropertyWithDetails) {
-  // Get the first image or use placeholder
-  const image = property.property_images?.[0]?.image_url || '/placeholder.svg?height=300&width=400'
+  // Get all images or use placeholder
+  const images = property.property_images?.map(img => img.image_url) || ['/placeholder.svg?height=300&width=400']
+  const image = images[0] // Keep first image for backward compatibility
   
   return {
     id: property.id,
@@ -239,6 +240,7 @@ export function formatPropertyForFrontend(property: PropertyWithDetails) {
     bathrooms: Number(property.bathrooms),
     sqft: property.square_feet || 0,
     image,
+    images, // Add all images for carousel
     type: property.property_type,
     landlord: property.profiles?.full_name || property.profiles?.email || 'Unknown',
     available: property.available,
