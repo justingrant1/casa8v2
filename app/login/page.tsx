@@ -31,13 +31,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Add timeout to prevent freezing
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Login timeout')), 10000)
-      })
-      
-      const signInPromise = signIn(formData.email, formData.password)
-      const { error } = await Promise.race([signInPromise, timeoutPromise]) as any
+      const { error } = await signIn(formData.email, formData.password)
 
       if (error) {
         toast.error(error.message)
@@ -46,18 +40,13 @@ export default function LoginPage() {
 
       toast.success("Welcome back!")
       
-      // Clear any existing state conflicts
-      if (typeof window !== 'undefined') {
-        // Force a page reload to clear any cached state
-        window.location.href = "/"
-      }
+      // Small delay then redirect
+      setTimeout(() => {
+        router.push("/")
+      }, 500)
     } catch (error: any) {
       console.error('Login error:', error)
-      if (error.message === 'Login timeout') {
-        toast.error("Login is taking too long. Please refresh the page and try again.")
-      } else {
-        toast.error("An unexpected error occurred")
-      }
+      toast.error("An unexpected error occurred")
     } finally {
       setIsLoading(false)
     }

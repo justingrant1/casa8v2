@@ -24,22 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Add timeout to prevent infinite loading in Chrome
-    const loadingTimeout = setTimeout(() => {
-      console.warn('Auth loading timeout - forcing loading to false')
-      setLoading(false)
-    }, 10000) // 10 second timeout
-
     // Get initial session
     const getInitialSession = async () => {
       try {
-        // Add timeout to the session call
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session timeout')), 5000)
-        })
-        
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any
+        const { data: { session } } = await supabase.auth.getSession()
         
         setUser(session?.user ?? null)
         
@@ -52,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
       } finally {
-        clearTimeout(loadingTimeout)
         setLoading(false)
       }
     }
