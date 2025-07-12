@@ -105,7 +105,11 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
             }}
           >
             {images.map((image: string, index: number) => (
-              <div key={index} className="w-full h-full flex-shrink-0">
+              <div 
+                key={index} 
+                className="h-full flex-shrink-0"
+                style={{ width: `${100 / images.length}%` }}
+              >
                 <Image
                   src={image || "/placeholder.svg"}
                   alt={`${property.title} - Image ${index + 1}`}

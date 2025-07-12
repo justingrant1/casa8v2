@@ -404,7 +404,11 @@ export default function PropertyDetailPage() {
                   }}
                 >
                   {property.images.map((image: string, index: number) => (
-                    <div key={index} className="w-full h-full flex-shrink-0">
+                    <div 
+                      key={index} 
+                      className="h-full flex-shrink-0"
+                      style={{ width: `${100 / property.images.length}%` }}
+                    >
                       <Image
                         src={image || "/placeholder.svg"}
                         alt={`${property.title} - Image ${index + 1}`}
