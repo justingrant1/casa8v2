@@ -26,8 +26,6 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragOffset, setDragOffset] = useState(0)
   
   const images = property.images || [property.image]
   const hasMultipleImages = images.length > 1
@@ -48,34 +46,19 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  // Touch handlers for smooth swipe detection
+  // Touch handlers for simple swipe detection
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
-    setIsDragging(true)
-    setDragOffset(0)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return
-    
-    const currentX = e.targetTouches[0].clientX
-    const diff = touchStart - currentX
-    setTouchEnd(currentX)
-    
-    // Convert to percentage and constrain the drag
-    const containerWidth = 400 // approximate card width
-    const dragPercent = (diff / containerWidth) * 100
-    const constrainedDrag = Math.max(-30, Math.min(30, dragPercent)) // Limit to ±30%
-    setDragOffset(constrainedDrag)
+    setTouchEnd(e.targetTouches[0].clientX)
   }
 
   const onTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    setIsDragging(false)
-    setDragOffset(0)
     
     if (!touchStart || !touchEnd) return
     
@@ -102,10 +85,9 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
           onTouchEnd={onTouchEnd}
         >
           <div 
-            className="flex w-full h-full"
+            className="flex w-full h-full transition-transform duration-300 ease-out"
             style={{
-              transform: `translateX(${-currentImageIndex * 100 - (dragOffset / 4)}%)`,
-              transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+              transform: `translateX(${-currentImageIndex * 100}%)`,
               width: `${images.length * 100}%`
             }}
           >

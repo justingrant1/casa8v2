@@ -231,8 +231,6 @@ export default function PropertyDetailPage() {
   const [applyModal, setApplyModal] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragOffset, setDragOffset] = useState(0)
 
   useEffect(() => {
     async function fetchProperty() {
@@ -300,32 +298,17 @@ export default function PropertyDetailPage() {
     toggleFavorite(propertyId)
   }
 
-  // Touch handlers for smooth swipe detection
+  // Touch handlers for simple swipe detection
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
-    setIsDragging(true)
-    setDragOffset(0)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart) return
-    
-    const currentX = e.targetTouches[0].clientX
-    const diff = touchStart - currentX
-    setTouchEnd(currentX)
-    
-    // Convert to percentage and constrain the drag
-    const containerWidth = 600 // approximate details page width
-    const dragPercent = (diff / containerWidth) * 100
-    const constrainedDrag = Math.max(-30, Math.min(30, dragPercent)) // Limit to ±30%
-    setDragOffset(constrainedDrag)
+    setTouchEnd(e.targetTouches[0].clientX)
   }
 
   const onTouchEnd = () => {
-    setIsDragging(false)
-    setDragOffset(0)
-    
     if (!touchStart || !touchEnd || !property) return
     
     const distance = touchStart - touchEnd
@@ -401,10 +384,9 @@ export default function PropertyDetailPage() {
                 onTouchEnd={onTouchEnd}
               >
                 <div 
-                  className="flex w-full h-96"
+                  className="flex w-full h-96 transition-transform duration-300 ease-out"
                   style={{
-                    transform: `translateX(${-currentImageIndex * 100 - (dragOffset / 4)}%)`,
-                    transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+                    transform: `translateX(${-currentImageIndex * 100}%)`,
                     width: `${property.images.length * 100}%`
                   }}
                 >
