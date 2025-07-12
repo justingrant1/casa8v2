@@ -143,6 +143,93 @@ export async function getLandlordProperties(landlordId: string) {
   }
 }
 
+export async function deleteProperty(propertyId: string, landlordId: string) {
+  try {
+    // First, delete associated images from storage and database
+    const { data: imageRecords } = await supabase
+      .from('property_images')
+      .select('image_url')
+      .eq('property_id', propertyId)
+
+    if (imageRecords && imageRecords.length > 0) {
+      // Delete images from storage
+      for (const record of imageRecords) {
+        const imagePath = record.image_url.split('/').pop()
+        if (imagePath) {
+          await supabase.storage
+            .from('property-images')
+            .remove([`properties/${imagePath}`])
+        }
+      }
+
+      // Delete image records from database
+      await supabase
+        .from('property_images')
+        .delete()
+        .eq('property_id', propertyId)
+    }
+
+    // Delete the property (ensure only landlord can delete their own property)
+    const { data, error } = await supabase
+      .from('properties')
+      .delete()
+      .eq('id', propertyId)
+      .eq('landlord_id', landlordId)
+      .select()
+
+    if (error) throw error
+
+    return { success: true, deletedProperty: data }
+  } catch (error) {
+    console.error('Error deleting property:', error)
+    throw error
+  }
+}
+
+export async function updateProperty(propertyId: string, landlordId: string, updates: Partial<CreatePropertyData>) {
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', propertyId)
+      .eq('landlord_id', landlordId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return { success: true, property: data }
+  } catch (error) {
+    console.error('Error updating property:', error)
+    throw error
+  }
+}
+
+export async function updatePropertyStatus(propertyId: string, landlordId: string, available: boolean) {
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .update({
+        available,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', propertyId)
+      .eq('landlord_id', landlordId)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return { success: true, property: data }
+  } catch (error) {
+    console.error('Error updating property status:', error)
+    throw error
+  }
+}
+
 export function formatFormDataForDB(formData: any, landlordId: string): CreatePropertyData {
   return {
     title: formData.title,

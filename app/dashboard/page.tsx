@@ -10,9 +10,10 @@ import { Plus, Edit, Trash2, MessageSquare, FileText } from "lucide-react"
 import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/lib/auth"
-import { getLandlordProperties } from "@/lib/property-management"
+import { getLandlordProperties, deleteProperty, updatePropertyStatus } from "@/lib/property-management"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 // Mock data for landlord dashboard
 const dashboardData = {
@@ -228,21 +229,58 @@ export default function LandlordDashboard() {
     }
   }
 
-  const handleStatusChange = (propertyId: number, newStatus: string) => {
-    setPropertyStatuses((prev) => ({
-      ...prev,
-      [propertyId]: newStatus,
-    }))
+  const handleStatusChange = async (propertyId: number, newStatus: string) => {
+    if (!user) return
+
+    try {
+      const available = newStatus === 'active'
+      await updatePropertyStatus(propertyId.toString(), user.id, available)
+      
+      setPropertyStatuses((prev) => ({
+        ...prev,
+        [propertyId]: newStatus,
+      }))
+
+      toast({
+        title: "Property status updated",
+        description: `Property is now ${newStatus}`
+      })
+    } catch (error) {
+      console.error('Error updating property status:', error)
+      toast({
+        title: "Error updating status",
+        description: "Failed to update property status. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleEdit = (propertyId: number) => {
-    console.log("Edit property:", propertyId)
-    // Handle edit functionality
+    // For now, navigate to property page - later we can create an edit page
+    router.push(`/property/${propertyId}`)
   }
 
-  const handleDelete = (propertyId: number) => {
-    console.log("Delete property:", propertyId)
-    // Handle delete functionality
+  const handleDelete = async (propertyId: number) => {
+    if (!user) return
+
+    try {
+      await deleteProperty(propertyId.toString(), user.id)
+      
+      // Remove from local state
+      setLandlordProperties(prev => prev.filter(p => p.id !== propertyId))
+      
+      toast({
+        title: "Property deleted",
+        description: "Property has been successfully removed from your listings"
+      })
+    } catch (error) {
+      console.error('Error deleting property:', error)
+      toast({
+        title: "Error deleting property",
+        description: "Failed to delete property. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -353,14 +391,34 @@ export default function LandlordDashboard() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDelete(property.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Property</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{property.title}"? This action cannot be undone and will remove all associated images and data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(property.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete Property
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </td>
                       </tr>
