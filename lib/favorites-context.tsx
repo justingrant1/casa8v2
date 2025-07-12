@@ -1,148 +1,138 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useAuth } from './auth'
+import { getUserFavorites, addToFavorites, removeFromFavorites, getUserFavoriteIds } from './favorites-db'
 
 interface FavoritesContextType {
-  favorites: Set<number>
-  toggleFavorite: (propertyId: number) => void
-  isFavorite: (propertyId: number) => boolean
-  getFavoriteProperties: () => any[]
+  favorites: Set<string>
+  favoriteProperties: any[]
+  toggleFavorite: (propertyId: string) => void
+  isFavorite: (propertyId: string) => boolean
+  loading: boolean
+  refreshFavorites: () => Promise<void>
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined)
 
-// Mock data for properties (same as in homepage)
-const properties = [
-  {
-    id: 1,
-    title: "Modern Downtown Apartment",
-    price: 2500,
-    location: "Downtown, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Apartment",
-    landlord: "John Smith",
-    available: true,
-  },
-  {
-    id: 2,
-    title: "Cozy Suburban House",
-    price: 3200,
-    location: "Bellevue, WA",
-    bedrooms: 3,
-    bathrooms: 2.5,
-    sqft: 1800,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "Sarah Johnson",
-    available: true,
-  },
-  {
-    id: 3,
-    title: "Luxury Waterfront Condo",
-    price: 4500,
-    location: "Waterfront, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1400,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Condo",
-    landlord: "Mike Davis",
-    available: true,
-  },
-  {
-    id: 4,
-    title: "Studio in Capitol Hill",
-    price: 1800,
-    location: "Capitol Hill, Seattle",
-    bedrooms: 1,
-    bathrooms: 1,
-    sqft: 600,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Studio",
-    landlord: "Emma Wilson",
-    available: true,
-  },
-  {
-    id: 5,
-    title: "Family Home with Yard",
-    price: 2800,
-    location: "Redmond, WA",
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "David Brown",
-    available: true,
-  },
-  {
-    id: 6,
-    title: "Penthouse Suite",
-    price: 6000,
-    location: "Belltown, Seattle",
-    bedrooms: 3,
-    bathrooms: 3,
-    sqft: 2000,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Penthouse",
-    landlord: "Lisa Anderson",
-    available: true,
-  },
-]
-
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
-  const [favorites, setFavorites] = useState<Set<number>>(new Set())
+  const { user } = useAuth()
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [favoriteProperties, setFavoriteProperties] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // Load favorites from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('casa8-favorites')
-      if (saved) {
-        try {
-          const favIds = JSON.parse(saved)
-          setFavorites(new Set(favIds))
-        } catch (error) {
-          console.error('Error loading favorites:', error)
+  // Load favorites from database when user logs in
+  const loadFavorites = async () => {
+    if (!user) {
+      setFavorites(new Set())
+      setFavoriteProperties([])
+      return
+    }
+
+    try {
+      setLoading(true)
+      
+      // Get favorite IDs
+      const favoriteIds = await getUserFavoriteIds(user.id)
+      setFavorites(new Set(favoriteIds))
+      
+      // Get full favorite properties
+      const favoriteProps = await getUserFavorites(user.id)
+      setFavoriteProperties(favoriteProps)
+    } catch (error) {
+      console.error('Error loading favorites:', error)
+      // Fallback to localStorage for now
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('casa8-favorites')
+        if (saved) {
+          try {
+            const favIds = JSON.parse(saved)
+            setFavorites(new Set(favIds))
+          } catch (error) {
+            console.error('Error loading favorites from localStorage:', error)
+          }
         }
       }
+    } finally {
+      setLoading(false)
     }
-  }, [])
+  }
 
-  // Save favorites to localStorage whenever it changes
+  // Load favorites when user changes
+  useEffect(() => {
+    loadFavorites()
+  }, [user])
+
+  // Save to localStorage as backup when favorites change
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('casa8-favorites', JSON.stringify(Array.from(favorites)))
     }
   }, [favorites])
 
-  const toggleFavorite = (propertyId: number) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev)
-      if (newFavorites.has(propertyId)) {
-        newFavorites.delete(propertyId)
+  const toggleFavorite = async (propertyId: string) => {
+    if (!user) {
+      // If not logged in, just use localStorage
+      setFavorites(prev => {
+        const newFavorites = new Set(prev)
+        if (newFavorites.has(propertyId)) {
+          newFavorites.delete(propertyId)
+        } else {
+          newFavorites.add(propertyId)
+        }
+        return newFavorites
+      })
+      return
+    }
+
+    try {
+      if (favorites.has(propertyId)) {
+        // Remove from favorites
+        await removeFromFavorites(user.id, propertyId)
+        setFavorites(prev => {
+          const newFavorites = new Set(prev)
+          newFavorites.delete(propertyId)
+          return newFavorites
+        })
+        // Remove from favorite properties list
+        setFavoriteProperties(prev => prev.filter(prop => prop.id !== propertyId))
       } else {
-        newFavorites.add(propertyId)
+        // Add to favorites
+        await addToFavorites(user.id, propertyId)
+        setFavorites(prev => new Set([...prev, propertyId]))
+        // Refresh favorite properties to include the new one
+        refreshFavorites()
       }
-      return newFavorites
-    })
+    } catch (error) {
+      console.error('Error toggling favorite:', error)
+      // Fallback to local state only
+      setFavorites(prev => {
+        const newFavorites = new Set(prev)
+        if (newFavorites.has(propertyId)) {
+          newFavorites.delete(propertyId)
+        } else {
+          newFavorites.add(propertyId)
+        }
+        return newFavorites
+      })
+    }
   }
 
-  const isFavorite = (propertyId: number) => {
+  const isFavorite = (propertyId: string) => {
     return favorites.has(propertyId)
   }
 
-  const getFavoriteProperties = () => {
-    return properties.filter(property => favorites.has(property.id))
+  const refreshFavorites = async () => {
+    await loadFavorites()
   }
 
   const value: FavoritesContextType = {
     favorites,
+    favoriteProperties,
     toggleFavorite,
     isFavorite,
-    getFavoriteProperties
+    loading,
+    refreshFavorites
   }
 
   return <FavoritesContext.Provider value={value}>{children}</FavoritesContext.Provider>

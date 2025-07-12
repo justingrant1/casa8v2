@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Plus, Edit, Trash2, MessageSquare, FileText } from "lucide-react"
 import Link from "next/link"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useAuth } from "@/lib/auth"
+import { getLandlordProperties } from "@/lib/property-management"
+import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 // Mock data for landlord dashboard
 const dashboardData = {
@@ -133,16 +137,50 @@ const properties = [
 ]
 
 export default function LandlordDashboard() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("properties")
-  const [propertyStatuses, setPropertyStatuses] = useState<{ [key: number]: string }>(
-    properties.reduce(
-      (acc, property) => {
-        acc[property.id] = property.status
+  const [landlordProperties, setLandlordProperties] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [propertyStatuses, setPropertyStatuses] = useState<{ [key: string]: string }>({})
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+      return
+    }
+
+    if (user) {
+      fetchLandlordProperties()
+    }
+  }, [user, authLoading, router])
+
+  const fetchLandlordProperties = async () => {
+    if (!user) return
+    
+    try {
+      setLoading(true)
+      const properties = await getLandlordProperties(user.id)
+      setLandlordProperties(properties)
+      
+      // Initialize property statuses
+      const statuses = properties.reduce((acc: any, property: any) => {
+        acc[property.id] = property.available ? 'active' : 'inactive'
         return acc
-      },
-      {} as { [key: number]: string },
-    ),
-  )
+      }, {})
+      setPropertyStatuses(statuses)
+    } catch (error) {
+      console.error('Error fetching properties:', error)
+      toast({
+        title: "Error loading properties",
+        description: "Failed to load your properties. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -239,53 +277,70 @@ export default function LandlordDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {properties.map((property) => (
-                    <tr key={property.id} className="border-b hover:bg-gray-50">
-                      <td className="py-4 px-6">
-                        <span className="font-medium text-gray-900">{property.title}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-gray-600">{property.address}</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className="text-gray-900">${property.price}/month</span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <Select
-                          value={propertyStatuses[property.id]}
-                          onValueChange={(value) => handleStatusChange(property.id, value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-600 hover:text-gray-900"
-                            onClick={() => handleEdit(property.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDelete(property.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                        Loading your properties...
                       </td>
                     </tr>
-                  ))}
+                  ) : landlordProperties.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No properties listed yet. <Link href="/list-property" className="text-primary hover:underline">Add your first property</Link>
+                      </td>
+                    </tr>
+                  ) : (
+                    landlordProperties.map((property) => (
+                      <tr key={property.id} className="border-b hover:bg-gray-50">
+                        <td className="py-4 px-6">
+                          <span className="font-medium text-gray-900">{property.title}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-gray-600">
+                            {property.address}, {property.city}, {property.state}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="text-gray-900">${property.price}/month</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <Select
+                            value={propertyStatuses[property.id]}
+                            onValueChange={(value) => handleStatusChange(property.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-gray-600 hover:text-gray-900"
+                              onClick={() => handleEdit(property.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDelete(property.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

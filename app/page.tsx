@@ -13,100 +13,39 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
-
-// Mock data for properties
-const properties = [
-  {
-    id: 1,
-    title: "Modern Downtown Apartment",
-    price: 2500,
-    location: "Downtown, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Apartment",
-    landlord: "John Smith",
-    available: true,
-  },
-  {
-    id: 2,
-    title: "Cozy Suburban House",
-    price: 3200,
-    location: "Bellevue, WA",
-    bedrooms: 3,
-    bathrooms: 2.5,
-    sqft: 1800,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "Sarah Johnson",
-    available: true,
-  },
-  {
-    id: 3,
-    title: "Luxury Waterfront Condo",
-    price: 4500,
-    location: "Waterfront, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1400,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Condo",
-    landlord: "Mike Davis",
-    available: true,
-  },
-  {
-    id: 4,
-    title: "Studio in Capitol Hill",
-    price: 1800,
-    location: "Capitol Hill, Seattle",
-    bedrooms: 1,
-    bathrooms: 1,
-    sqft: 600,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Studio",
-    landlord: "Emma Wilson",
-    available: true,
-  },
-  {
-    id: 5,
-    title: "Family Home with Yard",
-    price: 2800,
-    location: "Redmond, WA",
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "David Brown",
-    available: true,
-  },
-  {
-    id: 6,
-    title: "Penthouse Suite",
-    price: 6000,
-    location: "Belltown, Seattle",
-    bedrooms: 3,
-    bathrooms: 3,
-    sqft: 2000,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Penthouse",
-    landlord: "Lisa Anderson",
-    available: true,
-  },
-]
+import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
 
 export default function HomePage() {
   const router = useRouter()
   const { user, profile, signOut, loading } = useAuth()
   const { toggleFavorite, isFavorite } = useFavorites()
+  const [properties, setProperties] = useState<any[]>([])
+  const [propertiesLoading, setPropertiesLoading] = useState(true)
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
-    property?: { title: string; id: number }
+    property?: { title: string; id: string }
   }>({
     isOpen: false,
   })
+
+  // Fetch properties from database
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        setPropertiesLoading(true)
+        const data = await getProperties({ limit: 6 })
+        const formattedProperties = data.map(formatPropertyForFrontend)
+        setProperties(formattedProperties)
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+      } finally {
+        setPropertiesLoading(false)
+      }
+    }
+
+    fetchProperties()
+  }, [])
 
   const openContactModal = (property: any) => {
     setContactModal({
@@ -140,7 +79,7 @@ export default function HomePage() {
     // Don't need router.push since signOut() already handles redirect
   }
 
-  const handleToggleFavorite = (propertyId: number) => {
+  const handleToggleFavorite = (propertyId: string) => {
     if (!user) {
       router.push('/login')
       return

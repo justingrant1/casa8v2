@@ -22,7 +22,7 @@ interface ContactLandlordModalProps {
   }
   property: {
     title: string
-    id: number
+    id: string
   }
 }
 

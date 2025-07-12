@@ -14,14 +14,14 @@ import { useFavorites } from "@/lib/favorites-context"
 export default function FavoritesPage() {
   const router = useRouter()
   const { user, loading } = useAuth()
-  const { getFavoriteProperties, toggleFavorite } = useFavorites()
+  const { favoriteProperties, toggleFavorite, loading: favoritesLoading } = useFavorites()
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("newest")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
-    property?: { title: string; id: number }
+    property?: { title: string; id: string }
   }>({
     isOpen: false,
   })
@@ -52,12 +52,9 @@ export default function FavoritesPage() {
     setContactModal({ isOpen: false })
   }
 
-  const removeFavorite = (propertyId: number) => {
+  const removeFavorite = (propertyId: string) => {
     toggleFavorite(propertyId)
   }
-
-  // Get favorite properties from context
-  const favoriteProperties = getFavoriteProperties()
   
   // Filter and sort properties
   const filteredProperties = favoriteProperties.filter(

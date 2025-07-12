@@ -14,10 +14,16 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, X, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth"
+import { createProperty, formatFormDataForDB } from "@/lib/property-management"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ListPropertyPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
+  const { user, loading: authLoading } = useAuth()
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -44,17 +50,11 @@ export default function ListPropertyPage() {
   })
 
   useEffect(() => {
-    // Check if user is logged in - replace with actual auth logic
-    const isLoggedIn = false // This would come from your auth state/context
-
-    if (!isLoggedIn) {
-      // User is not logged in, redirect to login page
+    if (!authLoading && !user) {
       router.push("/login")
       return
     }
-
-    setIsLoading(false)
-  }, [router])
+  }, [user, authLoading, router])
 
   const amenitiesList = [
     "Air conditioning",
@@ -106,11 +106,46 @@ export default function ListPropertyPage() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Property data:", formData)
-    // Handle form submission
-    router.push("/dashboard")
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to list a property",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      // Format the form data for database insertion
+      const propertyData = formatFormDataForDB(formData, user.id)
+      
+      // Create the property
+      const result = await createProperty(propertyData)
+      
+      if (result.success) {
+        toast({
+          title: "Property listed successfully!",
+          description: "Your property has been added to the platform"
+        })
+        
+        // Redirect to dashboard or property page
+        router.push("/dashboard")
+      }
+    } catch (error: any) {
+      console.error("Error creating property:", error)
+      toast({
+        title: "Error listing property",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Show loading or redirect while checking authentication
@@ -567,8 +602,8 @@ export default function ListPropertyPage() {
                 Cancel
               </Button>
             </Link>
-            <Button type="submit" size="lg">
-              List Property
+            <Button type="submit" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? "Listing Property..." : "List Property"}
             </Button>
           </div>
         </form>
