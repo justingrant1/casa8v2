@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -156,7 +156,22 @@ export default function HomePage() {
     })
   }
 
-  if (loading) {
+  // Add timeout for loading state to prevent infinite loading in Chrome
+  const [forceRender, setForceRender] = useState(false)
+  
+  // Use useEffect instead of useState for side effects
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Forcing render after loading timeout')
+        setForceRender(true)
+      }
+    }, 8000) // 8 second timeout
+    
+    return () => clearTimeout(timeout)
+  }, [loading])
+
+  if (loading && !forceRender) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
