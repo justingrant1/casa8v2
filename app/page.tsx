@@ -98,6 +98,7 @@ const properties = [
 export default function HomePage() {
   const router = useRouter()
   const { user, profile, signOut, loading } = useAuth()
+  const [favorites, setFavorites] = useState<Set<number>>(new Set())
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
@@ -135,7 +136,24 @@ export default function HomePage() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.push("/")
+    // Don't need router.push since signOut() already handles redirect
+  }
+
+  const toggleFavorite = (propertyId: number) => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+    
+    setFavorites(prev => {
+      const newFavorites = new Set(prev)
+      if (newFavorites.has(propertyId)) {
+        newFavorites.delete(propertyId)
+      } else {
+        newFavorites.add(propertyId)
+      }
+      return newFavorites
+    })
   }
 
   if (loading) {
@@ -182,17 +200,23 @@ export default function HomePage() {
                   <span className="text-sm font-medium text-gray-700 hidden md:block">
                     Welcome, {profile?.full_name || user.email}!
                   </span>
-                  <Link href="/dashboard">
-                    <Button variant="ghost" className="font-medium">
-                      Dashboard
-                    </Button>
-                  </Link>
+                  {/* Only show Dashboard for landlords */}
+                  {profile?.role === 'landlord' && (
+                    <Link href="/dashboard">
+                      <Button variant="ghost" className="font-medium">
+                        Dashboard
+                      </Button>
+                    </Link>
+                  )}
                   <Button variant="outline" className="font-medium bg-transparent" onClick={handleSignOut}>
                     Logout
                   </Button>
-                  <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
-                    Post Listing
-                  </Button>
+                  {/* Only show Post Listing for landlords */}
+                  {profile?.role === 'landlord' && (
+                    <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
+                      Post Listing
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
@@ -354,8 +378,18 @@ export default function HomePage() {
                     size="icon"
                     variant="secondary"
                     className="absolute top-4 right-4 h-10 w-10 bg-white/90 hover:bg-white shadow-lg"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      toggleFavorite(property.id)
+                    }}
                   >
-                    <Heart className="h-5 w-5" />
+                    <Heart 
+                      className={`h-5 w-5 transition-colors ${
+                        favorites.has(property.id) 
+                          ? 'fill-red-500 text-red-500' 
+                          : 'text-gray-600'
+                      }`} 
+                    />
                   </Button>
                   <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900 font-medium px-3 py-1">
                     {property.type}
