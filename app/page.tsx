@@ -188,6 +188,7 @@ export default function HomePage() {
                 <Link href="/search" className="text-gray-600 hover:text-primary transition-colors">
                   Search
                 </Link>
+                {/* Always show Favorites link */}
                 <Link href="/favorites" className="text-gray-600 hover:text-primary transition-colors">
                   Favorites
                 </Link>
@@ -200,6 +201,14 @@ export default function HomePage() {
                   <span className="text-sm font-medium text-gray-700 hidden md:block">
                     Welcome, {profile?.full_name || user.email}!
                   </span>
+                  {/* Favorites button - always visible for logged-in users */}
+                  <Link href="/favorites">
+                    <Button variant="ghost" className="font-medium">
+                      <Heart className="w-4 h-4 mr-2 md:hidden" />
+                      <span className="hidden md:block">Favorites</span>
+                      <span className="md:hidden">♥</span>
+                    </Button>
+                  </Link>
                   {/* Only show Dashboard for landlords */}
                   {profile?.role === 'landlord' && (
                     <Link href="/dashboard">
