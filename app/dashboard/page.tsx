@@ -153,6 +153,18 @@ export default function LandlordDashboard() {
       return
     }
 
+    // Check if user is a landlord - only landlords should access dashboard
+    if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
+      // Redirect tenants back to homepage with message
+      toast({
+        title: "Access Denied",
+        description: "This page is only available to landlords",
+        variant: "destructive"
+      })
+      router.push("/")
+      return
+    }
+
     // Fetch properties when user is available
     if (user && !authLoading) {
       fetchLandlordProperties()

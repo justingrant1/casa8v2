@@ -40,10 +40,10 @@ export default function LoginPage() {
 
       toast.success("Welcome back!")
       
-      // Handle redirect manually after successful login
+      // Redirect to homepage for all users initially
+      // The auth context will handle role-based redirects if needed
       setTimeout(() => {
-        // Check if user gets updated in auth context, then redirect
-        router.push("/dashboard") // Default to dashboard, homepage works for all users
+        router.push("/") // Redirect to homepage, not dashboard
       }, 500)
     } catch (error) {
       toast.error("An unexpected error occurred")

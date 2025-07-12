@@ -54,6 +54,18 @@ export default function ListPropertyPage() {
       router.push("/login")
       return
     }
+
+    // Check if user is a landlord - only landlords can list properties
+    if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
+      // Redirect tenants back to homepage with message
+      toast({
+        title: "Access Denied",
+        description: "Only landlords can list properties",
+        variant: "destructive"
+      })
+      router.push("/")
+      return
+    }
   }, [user, authLoading, router])
 
   const amenitiesList = [
