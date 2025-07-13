@@ -128,14 +128,14 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
           // Add styles immediately
           addAutocompleteStyles()
 
-          autocomplete.addListener('place_changed', () => {
+          const handlePlaceChanged = () => {
             const place = autocomplete.getPlace()
 
-            if (!place.geometry?.location) {
+            if (!place.geometry?.location && !place.formatted_address) {
               return
             }
 
-            // Parse city and state from address components
+            // Parse city and state from address components or use formatted address
             let city = ''
             let state = ''
 
@@ -153,10 +153,49 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
               }
             }
 
-            // Format as "City, State"
-            const cityState = state ? `${city}, ${state}` : city
+            // Format as "City, State" or fall back to formatted address
+            const cityState = state ? `${city}, ${state}` : city || place.formatted_address || ''
+            
+            // Update both the input value and form state
+            if (cityInputRef.current) {
+              cityInputRef.current.value = cityState
+            }
             setFormData(prev => ({ ...prev, preferredCity: cityState }))
+          }
+
+          autocomplete.addListener('place_changed', handlePlaceChanged)
+
+          // Also handle direct click events on pac-items
+          const handlePacItemClick = () => {
+            setTimeout(() => {
+              handlePlaceChanged()
+            }, 100)
+          }
+
+          // Monitor for pac-container creation and add click handlers
+          const addPacItemListeners = () => {
+            const pacContainer = document.querySelector('.pac-container')
+            if (pacContainer) {
+              const pacItems = pacContainer.querySelectorAll('.pac-item')
+              pacItems.forEach(item => {
+                item.addEventListener('click', handlePacItemClick)
+                item.addEventListener('touchend', handlePacItemClick)
+              })
+            }
+          }
+
+          // Use MutationObserver to detect when pac-container is added to DOM
+          const observer = new MutationObserver(() => {
+            addPacItemListeners()
           })
+
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          })
+
+          // Store observer for cleanup
+          ;(autocompleteRef.current as any).observer = observer
 
           // Add mobile touch event handling
           if (cityInputRef.current) {
@@ -197,6 +236,10 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
     return () => {
       if (autocompleteRef.current && window.google) {
         window.google.maps.event.clearInstanceListeners(autocompleteRef.current)
+      }
+      // Clean up MutationObserver
+      if (autocompleteRef.current?.observer) {
+        autocompleteRef.current.observer.disconnect()
       }
     }
   }, [isOpen])
