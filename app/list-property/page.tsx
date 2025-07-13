@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,13 +11,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Upload, X, ArrowLeft, Star, Loader2,,Play  Play } from "lucide-react"
+import { Upload, X, ArrowLeft, Star, Loader2, Play } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { createPropertyWithImages, formatFormDataForDB, getPropertyForEdit, updatePropertyWithImages } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
-import { AddressAutocomplete, AddressData } from "@/components/address-autocompl
+import { AddressAutocomplete, AddressData } from "@/components/address-autocomplete"
+
+const amenitiesList = [
+  "Air conditioning",
+  "Heating",
+  "Refrigerator",
+  "Dishwasher",
+  "Washer/Dryer",
+  "Parking",
+  "Pet friendly",
+  "Gym/Fitness center",
+  "Swimming pool",
+  "Balcony/Patio",
+  "Garden/Yard",
+  "Storage"
+]
+
 export default function ListPropertyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -50,10 +64,6 @@ export default function ListPropertyPage() {
     amenities: [] as string[],
     images: [] as File[],
     videos: [] as File[],
-    // Add these new f/elds
-    // Add these new f/elds
-    i/ Add these /ew fields
-    in Add these new fields
     includePhoneNumber: true,
     allowChat: true,
     contactPhoneNumber: "",
@@ -63,26 +73,16 @@ export default function ListPropertyPage() {
     if (!authLoading && !user) {
       router.push("/login")
       return
-// Check  useris a landlord - only landlords can list properties
-    if 
-      // Redirect tenants back to homepage with message
-    // Check if user is a landlord - only landlords can list properties    }
-// Check  useris a landlord - only landlords can list properties
-      // Redirect tenants back to homepage with message
-    if 
-      // Redirect tenants back to homepage with message
+    }
+
     // Check if user is a landlord - only landlords can list properties
     if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
-     
- // Redirect tenants back to homepage with message
-    // Check if we'te editing a property      roast({
+      toast({
         title: "Access Denied",
         description: "Only landlords can list properties",
         variant: "destructive"
-    // Che k if we're editing a prperty
-    co
- })
-    // Check if we're editing a property      router.push("/")
+      })
+      router.push("/")
       return
     }
 
@@ -90,42 +90,36 @@ export default function ListPropertyPage() {
     const editId = searchParams.get('edit')
     if (editId && user) {
       setIsEditing(true)
-        setEditPropertyId(editId)
-     //Populate form with exi ting data
-    s loadPropertyForEdit(editId)
+      setEditPropertyId(editId)
+      loadPropertyForEdit(editId)
     }
   }, [user, authLoading, router, searchParams])
-     
-      //Populateformwithexistingdata
+
   const loadPropertyForEdit = async (propertyId: string) => {
     if (!user) return
-      
-     //Populate form with existing data
+    
     setIsLoading(true)
     try {
       const property = await getPropertyForEdit(propertyId, user.id)
       
       // Populate form with existing data
       setFormData({
-        title: prop // New images to uploaderty.title || "",
+        title: property.title || "",
         description: property.description || "",
         propertyType: property.property_type || "",
         address: property.address || "",
         city: property.city || "",
-        
-      state: prop // New images to uploaderty.state || "",
-      // Set existing images  zipCode: property.zip_code || "",
+        state: property.state || "",
+        zipCode: property.zip_code || "",
         bedrooms: property.bedrooms?.toString() || "",
         bathrooms: property.bathrooms?.toString() || "",
-        sqft: prope // New images to uploadrty.square_feet?.toString() || "",
-        
-      rent: property.price?.toString() || "",
-      // Set existing images  deposit: property.security_deposit?.toString() || "",
+        sqft: property.square_feet?.toString() || "",
+        rent: property.price?.toString() || "",
+        deposit: property.security_deposit?.toString() || "",
         negotiableDeposit: false,
         amenities: property.amenities || [],
-        
-      images: [], // New images to upload
-      // Set existing images  videos: [],
+        images: [], // New images to upload
+        videos: [],
         includePhoneNumber: !!property.contact_phone,
         allowChat: property.allow_chat || false,
         contactPhoneNumber: property.contact_phone || "",
@@ -143,16 +137,14 @@ export default function ListPropertyPage() {
       router.push('/dashboard')
     } finally {
       setIsLoading(false)
-    } 
-efrigerator",
-    "Dishwasher",
-    "Washer/Dryer",
-    "Parking",
-    "Pet friendly", 
+    }
+  }
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
-    
-    // Update form data with the selected address components}))
+    }))
   }
 
   const handleAddressSelect = (selectedAddress: AddressData) => {
@@ -177,21 +169,19 @@ efrigerator",
         ? prev.amenities.filter((a) => a !== amenity)
         : [...prev.amenities, amenity],
     }))
-      
-     }// Start processing simulation for bulkuploads(10+images)
+  }
 
   const handleFileUpload = (type: "images" | "videos", files: FileList | null) => {
     if (files) {
       const fileArray = Array.from(files)
-      co// Simulate pronessing prsgress
-        cot newCount = formData[type].length + fileArray.length
+      const newCount = formData[type].length + fileArray.length
       
       // Start processing simulation for bulk uploads (10+ images)
       if (type === "images" && newCount >= 10) {
         setIsProcessingImages(true)
         setUploadProgress(0)
         
-        // Simulate processing progress // Slower for more images
+        // Simulate processing progress
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => {
             if (prev >= 100) {
@@ -212,20 +202,20 @@ efrigerator",
   }
 
   const removeFile = (type: "images" | "videos", index: number) => {
-   
+    setFormData((prev) => ({
+      ...prev,
+      [type]: prev[type].filter((_, i) => i !== index),
+    }))
+  }
+
+  const removeExistingImage = (imageId: string) => {
+    setExistingImages(prev => prev.filter(img => img.id !== imageId))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('🔍 DEBUG: Form submission started')
-    console.log('🔍 DEBUG: Is editing:', isEditing)
-    console.log('🔍 DEBUG: User:', user)
-    console.log('🔍 DEBUG: Form data:', formData)
-    console.log('🔍 DEBUG: Images in form data:', formData.images)
-    console.log('🔍 DEBUG: Existing images:', existingImages)
-    
     if (!user) {
-      console.log('❌ DEBUG: No user found')
       toast({
         title: "Authentication required",
         description: "Please log in to manage properties",
@@ -236,7 +226,6 @@ efrigerator",
 
     // Basic form validation
     if (!formData.title.trim()) {
-      console.log('❌ DEBUG: Title validation failed')
       toast({
         title: "Validation Error",
         description: "Property title is required",
@@ -246,7 +235,6 @@ efrigerator",
     }
 
     if (!formData.rent || isNaN(Number(formData.rent))) {
-      console.log('❌ DEBUG: Rent validation failed')
       toast({
         title: "Validation Error", 
         description: "Valid rent amount is required",
@@ -255,19 +243,15 @@ efrigerator",
       return
     }
 
-    console.log('✅ DEBUG: All validations passed')
     setIsSubmitting(true)
 
     try {
       // Format the form data for database insertion
       const propertyData = formatFormDataForDB(formData, user.id, addressData)
-      console.log("🔍 DEBUG: Formatted property data:", propertyData)
-      console.log("🔍 DEBUG: Address data:", addressData)
       
       let result
       
       if (isEditing && editPropertyId) {
-        console.log("🔍 DEBUG: Updating existing property with ID:", editPropertyId)
         const existingImageIds = existingImages.map(img => img.id)
         result = await updatePropertyWithImages(
           editPropertyId, 
@@ -276,17 +260,13 @@ efrigerator",
           formData.images,
           existingImageIds
         )
-        console.log("🔍 DEBUG: updatePropertyWithImages result:", result)
       } else {
-        console.log("🔍 DEBUG: Creating new property with images:", formData.images.length)
         result = await createPropertyWithImages(propertyData, formData.images)
-        console.log("🔍 DEBUG: createPropertyWithImages result:", result)
       }
       
       if (result.success) {
         const imageCount = result.images?.length || 0
         const action = isEditing ? "updated" : "listed"
-        console.log(`✅ DEBUG: Property ${action} successful with`, imageCount, "new images")
         
         toast({
           title: `Property ${action} successfully!`,
@@ -301,7 +281,7 @@ efrigerator",
         }, 1000)
       }
     } catch (error: any) {
-      console.error("❌ DEBUG: Error processing property:", error)
+      console.error("Error processing property:", error)
       
       // More specific error handling
       let errorMessage = "Something went wrong. Please try again."
@@ -392,18 +372,20 @@ efrigerator",
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="propertyType">Property Type</Label>
-          <Select
-            value={formData.propertyType}
-            onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select property type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="apartment">Apartment</SelectItem>
-              <SelectItem value="house">House</SelectItem>
-            </SelectContent>
-          </Select>
+                  <Select
+                    value={formData.propertyType}
+                    onValueChange={(value) => setFormData({ ...formData, propertyType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="apartment">Apartment</SelectItem>
+                      <SelectItem value="house">House</SelectItem>
+                      <SelectItem value="condo">Condo</SelectItem>
+                      <SelectItem value="townhouse">Townhouse</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -513,7 +495,7 @@ efrigerator",
                   <Input
                     id="sqft"
                     type="number"
-                    placeholder=""
+                    placeholder="1200"
                     value={formData.sqft}
                     onChange={(e) => handleInputChange("sqft", e.target.value)}
                     required
@@ -535,7 +517,7 @@ efrigerator",
                 <Input
                   id="deposit"
                   type="number"
-                  placeholder=""
+                  placeholder="2500"
                   value={formData.deposit}
                   onChange={(e) => handleInputChange("deposit", e.target.value)}
                   required
@@ -745,6 +727,7 @@ efrigerator",
                         </p>
                       </div>
                     )}
+                    
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {formData.images.map((file, index) => {
                         const imageUrl = URL.createObjectURL(file)
@@ -753,35 +736,6 @@ efrigerator",
                           <div 
                             key={`${file.name}-${index}`} 
                             className="relative group cursor-move border-2 border-transparent hover:border-primary/30 rounded-lg transition-colors"
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", index.toString())
-                            }}
-                            onDragOver={(e) => {
-                              e.preventDefault()
-                              e.currentTarget.classList.add('border-primary', 'scale-105')
-                            }}
-                            onDragLeave={(e) => {
-                              e.currentTarget.classList.remove('border-primary', 'scale-105')
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault()
-                              e.currentTarget.classList.remove('border-primary', 'scale-105')
-                              const draggedIndex = parseInt(e.dataTransfer.getData("text/plain"))
-                              const dropIndex = index
-                              
-                              if (draggedIndex !== dropIndex) {
-                                const newImages = [...formData.images]
-                                const draggedImage = newImages[draggedIndex]
-                                newImages.splice(draggedIndex, 1)
-                                newImages.splice(dropIndex, 0, draggedImage)
-                                
-                                setFormData(prev => ({
-                                  ...prev,
-                                  images: newImages
-                                }))
-                              }
-                            }}
                           >
                             <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                               <img 
@@ -799,29 +753,6 @@ efrigerator",
                               </Badge>
                             )}
                             
-                            {!isMainImage && (
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                size="icon"
-                                className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
-                                onClick={() => {
-                                  const newImages = [...formData.images]
-                                  const imageToMove = newImages[index]
-                                  newImages.splice(index, 1)
-                                  newImages.unshift(imageToMove)
-                                  
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    images: newImages
-                                  }))
-                                }}
-                                title="Set as main image"
-                              >
-                                <Star className="h-3 w-3" />
-                              </Button>
-                            )}
-                            
                             <Button
                               type="button"
                               variant="destructive"
@@ -831,12 +762,6 @@ efrigerator",
                             >
                               <X className="h-4 w-4" />
                             </Button>
-                            
-                            <div className="absolute bottom-1 left-1 right-1">
-                              <p className="text-xs bg-black/50 text-white p-1 rounded truncate">
-                                {file.name}
-                              </p>
-                            </div>
                             
                             <div className="absolute bottom-2 right-2">
                               <Badge variant="secondary" className="text-xs h-5">
@@ -851,36 +776,32 @@ efrigerator",
                 )}
               </div>
 
-              {/* Video Upload */}
+              {/* Video Upload Placeholder */}
               <div className="space-y-4">
-                <Label>Property Videos (Optional)</Label>
-                <div <div className="text-center">  </div>
-                </div>
-
-                {formData.videos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {formData.videos.map((file, index) => (
-                      <div key={index} className="relative">
-                        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                          <span className="text-sm text-muted-foreground">{file.name}</span>
-                        </div>
-                        <Button
-                          type="button"
-                          varian*
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={() => removeFile("videos", index)}
-                        >
-                          <X className="h-4 w-4" />
-                      </div>
-                    ))}
+                <Label>Property Videos (Coming Soon)</Label>
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 bg-muted/30">
+                  <div className="text-center">
+                    <Play className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">Video upload feature coming soon!</p>
                   </div>
-                )}
-              </div>alarioutlin2">4
-                Canc(
-              </Button<ivky={ndx} laNm"="lasive">" size="lg" disabled={isSubmitting}>
-              {isSubmittg  ? "Update psLestptiogmuflex iems-ceter jufyr"
-          </div><sp claNme=-smt-mued-foerud"im}</n>
-</di<Bty="bton"v="ucveiz"c"laNae="bsolu-op-2-ght-2h-6-6"nCk={=>mvil"",nxXh44 //Buttn></i></iv>)}
-</div</CaCn>CarSbmibwLnkhrfdashbarButtontypbuon"vaia=outline"CancelButtonLk>tony="smiz"lgdsabed={isSbmit}isubmig?(Editg?"UpdaigProry...:"Listg Propt...) :(iEdtg?UpdP":"LsPrpy)}
-</Butt</d></frm></v></>)}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Submit Button */}
+          <div className="flex items-center justify-between">
+            <Link href="/dashboard">
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </Link>
+            <Button type="submit" size="lg" disabled={isSubmitting}>
+              {isSubmitting ? (isEditing ? "Updating Property..." : "Listing Property...") : (isEditing ? "Update Property" : "List Property")}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
