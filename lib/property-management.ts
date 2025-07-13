@@ -19,6 +19,9 @@ export interface CreatePropertyData {
   landlord_id: string
   contact_phone: string | null
   allow_chat: boolean
+  latitude?: number
+  longitude?: number
+  formatted_address?: string
 }
 
 export async function uploadPropertyImages(propertyId: string, images: File[]) {
@@ -350,8 +353,8 @@ export async function updatePropertyWithImages(
   }
 }
 
-export function formatFormDataForDB(formData: any, landlordId: string): CreatePropertyData {
-  return {
+export function formatFormDataForDB(formData: any, landlordId: string, addressData?: any): CreatePropertyData {
+  const propertyData: CreatePropertyData = {
     title: formData.title,
     description: formData.description,
     address: formData.address,
@@ -371,4 +374,17 @@ export function formatFormDataForDB(formData: any, landlordId: string): CreatePr
     contact_phone: formData.includePhoneNumber ? formData.contactPhoneNumber : null,
     allow_chat: formData.allowChat
   }
+
+  // Add coordinate and formatted address data if available
+  if (addressData) {
+    if (addressData.latitude && addressData.longitude) {
+      propertyData.latitude = addressData.latitude
+      propertyData.longitude = addressData.longitude
+    }
+    if (addressData.formatted_address) {
+      propertyData.formatted_address = addressData.formatted_address
+    }
+  }
+
+  return propertyData
 }

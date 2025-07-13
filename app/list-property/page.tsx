@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { createPropertyWithImages, formatFormDataForDB, getPropertyForEdit, updatePropertyWithImages } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
+import { AddressAutocomplete, AddressData } from "@/components/address-autocomplete"
 
 export default function ListPropertyPage() {
   const router = useRouter()
@@ -29,6 +30,7 @@ export default function ListPropertyPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editPropertyId, setEditPropertyId] = useState<string | null>(null)
   const [existingImages, setExistingImages] = useState<any[]>([])
+  const [addressData, setAddressData] = useState<AddressData | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -144,6 +146,21 @@ export default function ListPropertyPage() {
     }))
   }
 
+  const handleAddressSelect = (selectedAddress: AddressData) => {
+    setAddressData(selectedAddress)
+    
+    // Update form data with the selected address components
+    setFormData((prev) => ({
+      ...prev,
+      address: selectedAddress.street_number && selectedAddress.route 
+        ? `${selectedAddress.street_number} ${selectedAddress.route}`
+        : selectedAddress.formatted_address,
+      city: selectedAddress.locality || "",
+      state: selectedAddress.administrative_area_level_1 || "",
+      zipCode: selectedAddress.postal_code || "",
+    }))
+  }
+
   const handleAmenityToggle = (amenity: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -220,8 +237,9 @@ export default function ListPropertyPage() {
 
     try {
       // Format the form data for database insertion
-      const propertyData = formatFormDataForDB(formData, user.id)
+      const propertyData = formatFormDataForDB(formData, user.id, addressData)
       console.log("🔍 DEBUG: Formatted property data:", propertyData)
+      console.log("🔍 DEBUG: Address data:", addressData)
       
       let result
       
@@ -387,51 +405,40 @@ export default function ListPropertyPage() {
               <CardDescription>Where is your property located?</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Street Address</Label>
-                <Input
-                  id="address"
-                  placeholder="123 Main Street"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
-                  required
-                />
-              </div>
+              <AddressAutocomplete
+                onAddressSelect={handleAddressSelect}
+                placeholder="Start typing the property address..."
+                label="Property Address"
+                defaultValue={isEditing ? `${formData.address}, ${formData.city}, ${formData.state} ${formData.zipCode}`.trim() : ""}
+                showManualToggle={true}
+                required={true}
+              />
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    placeholder="Seattle"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
-                    required
-                  />
+              {/* Display parsed address components for verification */}
+              {(formData.address || formData.city || formData.state || formData.zipCode) && (
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Parsed Address:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">Street:</span> {formData.address || "Not specified"}
+                    </div>
+                    <div>
+                      <span className="font-medium">City:</span> {formData.city || "Not specified"}
+                    </div>
+                    <div>
+                      <span className="font-medium">State:</span> {formData.state || "Not specified"}
+                    </div>
+                    <div>
+                      <span className="font-medium">ZIP:</span> {formData.zipCode || "Not specified"}
+                    </div>
+                    {addressData?.latitude && addressData?.longitude && (
+                      <div className="md:col-span-2">
+                        <span className="font-medium">Coordinates:</span> {addressData.latitude.toFixed(6)}, {addressData.longitude.toFixed(6)}
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    placeholder="WA"
-                    value={formData.state}
-                    onChange={(e) => handleInputChange("state", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zipCode">ZIP Code</Label>
-                  <Input
-                    id="zipCode"
-                    placeholder="98101"
-                    value={formData.zipCode}
-                    onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
