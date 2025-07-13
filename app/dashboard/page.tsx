@@ -145,23 +145,14 @@ export default function LandlordDashboard() {
   const [landlordProperties, setLandlordProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [propertyStatuses, setPropertyStatuses] = useState<{ [key: string]: string }>({})
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - authLoading:', authLoading, 'user:', !!user, 'user.id:', user?.id)
+    console.log('🔍 Dashboard useEffect - authLoading:', authLoading, 'user:', !!user, 'user.id:', user?.id, 'initialized:', initialized)
     
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.log('⚠️ Dashboard timeout - forcing loading to false')
-        setLoading(false)
-        setLandlordProperties([])
-      }
-    }, 10000) // 10 second timeout
-
     // Only redirect if auth is definitely done loading and there's no user
     if (!authLoading && !user) {
       console.log('🔍 No user, redirecting to login')
-      clearTimeout(timeoutId)
       router.push("/login")
       return
     }
@@ -169,7 +160,6 @@ export default function LandlordDashboard() {
     // Check if user is a landlord - only landlords should access dashboard
     if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
       console.log('🔍 User is not landlord, redirecting home')
-      clearTimeout(timeoutId)
       // Redirect tenants back to homepage with message
       toast({
         title: "Access Denied",
@@ -180,14 +170,13 @@ export default function LandlordDashboard() {
       return
     }
 
-    // Fetch properties when user is available
-    if (user && !authLoading) {
-      console.log('🔍 User available, fetching properties')
+    // Fetch properties when user is available and we haven't initialized yet
+    if (user && !authLoading && !initialized) {
+      console.log('🔍 User available, fetching properties for first time')
+      setInitialized(true)
       fetchLandlordProperties()
     }
-
-    return () => clearTimeout(timeoutId)
-  }, [user, authLoading, router])
+  }, [user, authLoading, router, initialized])
 
   // Show loading screen while auth is loading
   if (authLoading) {
