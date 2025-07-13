@@ -16,7 +16,7 @@ import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
 import { SimpleMap } from "@/components/simple-map"
-import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
+import { getProperties, searchProperties, formatPropertyForFrontend } from "@/lib/properties"
 import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles } from "@/lib/location"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
@@ -231,12 +231,53 @@ export default function SearchPage() {
     fetchUserLocation()
   }, [])
 
-  // Fetch properties from database
+  // Fetch properties from database with search
   useEffect(() => {
     async function fetchProperties() {
       try {
         setPropertiesLoading(true)
-        const data = await getProperties({ limit: 50 }) // Get more properties for search
+        
+        let data
+        // Use search function if there's a search query, otherwise get all properties
+        if (searchQuery.trim()) {
+          data = await searchProperties(searchQuery.trim(), { limit: 50 })
+        } else {
+          // Apply location and other filters through the backend
+          const filters: any = { limit: 50 }
+          
+          if (locationQuery) {
+            // Extract city from location query (assume format is "City, State")
+            const cityMatch = locationQuery.split(',')[0]?.trim()
+            if (cityMatch) {
+              filters.city = cityMatch
+            }
+          }
+          
+          if (bedrooms !== "any") {
+            if (bedrooms === "studio") {
+              filters.bedrooms = 0
+            } else if (bedrooms === "5+") {
+              // For 5+, we'll filter client-side
+            } else {
+              filters.bedrooms = parseInt(bedrooms)
+            }
+          }
+          
+          if (propertyType !== "any") {
+            filters.propertyType = propertyType
+          }
+          
+          if (priceRange[0] > 1000) {
+            filters.minPrice = priceRange[0]
+          }
+          
+          if (priceRange[1] < 5000) {
+            filters.maxPrice = priceRange[1]
+          }
+          
+          data = await getProperties(filters)
+        }
+        
         let formattedProperties = data.map(formatPropertyForFrontend)
         
         // Add real coordinates from database for map functionality
@@ -266,7 +307,7 @@ export default function SearchPage() {
     }
 
     fetchProperties()
-  }, [])
+  }, [searchQuery, locationQuery, bedrooms, propertyType, priceRange])
 
   // Handle URL search parameters
   useEffect(() => {
