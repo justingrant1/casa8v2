@@ -296,25 +296,27 @@ export default function HomePage() {
         const data = await getProperties({ limit: 12 }) // Get more properties for better location sorting
         let formattedProperties = data.map(formatPropertyForFrontend)
         
-        // Add mock coordinates to properties for demonstration
-        // In a real app, these would come from the database
-        formattedProperties = formattedProperties.map((property, index) => ({
-          ...property,
-          coordinates: {
-            // Mock coordinates around major US cities for demonstration
-            lat: 40.7128 + (Math.random() - 0.5) * 5, // Around NYC area
-            lng: -74.0060 + (Math.random() - 0.5) * 5
-          }
-        }))
-
         // If user location is available, sort properties by distance
         if (userLocation) {
-          const nearbyProperties = getNearbyProperties(
-            formattedProperties,
-            userLocation.coordinates,
-            100 // 100km radius
-          )
-          setProperties(nearbyProperties.slice(0, 6)) // Show 6 closest properties
+          // Add coordinates to properties from database lat/lng for distance calculation
+          const propertiesWithCoords = formattedProperties.map(property => ({
+            ...property,
+            coordinates: property.latitude && property.longitude ? {
+              lat: parseFloat(property.latitude),
+              lng: parseFloat(property.longitude)
+            } : null
+          })).filter(property => property.coordinates) // Only include properties with valid coordinates
+
+          if (propertiesWithCoords.length > 0) {
+            const nearbyProperties = getNearbyProperties(
+              propertiesWithCoords,
+              userLocation.coordinates,
+              100 // 100km radius
+            )
+            setProperties(nearbyProperties.slice(0, 6)) // Show 6 closest properties
+          } else {
+            setProperties(formattedProperties.slice(0, 6))
+          }
         } else {
           setProperties(formattedProperties.slice(0, 6))
         }

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Search, MapPin, Bed, Bath, Square, Heart, SlidersHorizontal, X, List, Map } from "lucide-react"
+import { Search, MapPin, Bed, Bath, Square, Heart, SlidersHorizontal, X, List, Map, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
@@ -112,22 +112,22 @@ export default function SearchPage() {
         const data = await getProperties({ limit: 50 }) // Get more properties for search
         let formattedProperties = data.map(formatPropertyForFrontend)
         
-        // Add mock coordinates and amenities for demonstration
-        formattedProperties = formattedProperties.map((property, index) => ({
+        // Add real coordinates from database for map functionality
+        formattedProperties = formattedProperties.map(property => ({
           ...property,
-          coordinates: {
-            // Mock coordinates around major US cities for demonstration
-            lat: 40.7128 + (Math.random() - 0.5) * 10, // Wider area around NYC
-            lng: -74.0060 + (Math.random() - 0.5) * 10
-          },
-          amenities: [
+          coordinates: property.latitude && property.longitude ? {
+            lat: parseFloat(property.latitude),
+            lng: parseFloat(property.longitude)
+          } : null,
+          // Use database amenities or set default ones
+          amenities: property.amenities || [
             "Parking", "Laundry", "Internet",
             ...(Math.random() > 0.5 ? ["Gym"] : []),
             ...(Math.random() > 0.7 ? ["Pool"] : []),
             ...(Math.random() > 0.6 ? ["Pet Friendly"] : []),
             ...(Math.random() > 0.8 ? ["Garage"] : []),
           ],
-          available: Math.random() > 0.1 // 90% available
+          available: property.available !== false // Default to available
         }))
 
         setAllProperties(formattedProperties)
