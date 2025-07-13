@@ -652,7 +652,25 @@ export default function ListPropertyPage() {
               {/* Image Upload */}
               <div className="space-y-4">
                 <Label>{isEditing ? "Add New Photos" : "Property Photos"}</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 transition-colors hover:border-primary/50"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.classList.add('border-primary', 'bg-primary/5')
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
+                    const files = e.dataTransfer.files
+                    if (files) {
+                      handleFileUpload("images", files)
+                    }
+                  }}
+                >
                   <div className="text-center">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div className="mt-4">
@@ -669,28 +687,50 @@ export default function ListPropertyPage() {
                         onChange={(e) => handleFileUpload("images", e.target.files)}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">PNG, JPG, GIF up to 10MB each</p>
+                    <p className="text-xs text-muted-foreground mt-2">PNG, JPG, WebP up to 10MB each</p>
+                    <p className="text-xs text-muted-foreground">Maximum 20 images</p>
                   </div>
                 </div>
 
                 {formData.images.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {formData.images.map((file, index) => (
-                      <div key={index} className="relative">
-                        <div className="aspect-square bg-muted rounded-lg flex items-center justify-center">
-                          <span className="text-sm text-muted-foreground">{file.name}</span>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute -top-2 -right-2 h-6 w-6"
-                          onClick={() => removeFile("images", index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">New Images ({formData.images.length})</p>
+                      {formData.images.length >= 10 && (
+                        <Badge variant="secondary">Bulk Upload</Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {formData.images.map((file, index) => {
+                        const imageUrl = URL.createObjectURL(file)
+                        return (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                              <img 
+                                src={imageUrl}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                                onLoad={() => URL.revokeObjectURL(imageUrl)}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeFile("images", index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <div className="absolute bottom-1 left-1 right-1">
+                              <p className="text-xs bg-black/50 text-white p-1 rounded truncate">
+                                {file.name}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
