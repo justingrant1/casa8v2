@@ -13,7 +13,7 @@ import { ArrowLeft, User, Settings } from "lucide-react"
 import Link from "next/link"
 
 export default function ProfilePage() {
-  const { user, loading } = useAuth()
+  const { user, profile, loading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
@@ -34,18 +34,18 @@ export default function ProfilePage() {
       return
     }
 
-    if (user) {
+    if (profile) {
       // Load existing profile data
       setProfileData({
-        firstName: user.user_metadata?.first_name || "",
-        lastName: user.user_metadata?.last_name || "",
-        email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        location: user.user_metadata?.location || "",
-        bio: user.user_metadata?.bio || "",
+        firstName: profile.full_name?.split(' ')[0] || "",
+        lastName: profile.full_name?.split(' ')[1] || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        location: profile.preferred_city || "",
+        bio: profile.bio || "",
       })
     }
-  }, [user, loading, router])
+  }, [profile, loading, router])
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({
