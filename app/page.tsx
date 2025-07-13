@@ -12,6 +12,7 @@ import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
+import { UserDropdown } from "@/components/user-dropdown"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
@@ -405,17 +406,13 @@ export default function HomePage() {
             <div className="flex items-center space-x-3">
               {user ? (
                 <>
-                  <span className="text-sm font-medium text-gray-700 hidden md:block">
-                    Welcome, {profile?.full_name || user.email}!
-                  </span>
-                  {/* Favorites button - always visible for logged-in users */}
-                  <Link href="/favorites">
-                    <Button variant="ghost" className="font-medium">
-                      <Heart className="w-4 h-4 mr-2 md:hidden" />
-                      <span className="hidden md:block">Favorites</span>
-                      <span className="md:hidden">♥</span>
+                  {/* Favorites button - always visible for logged-in users on mobile */}
+                  <Link href="/favorites" className="md:hidden">
+                    <Button variant="ghost" size="icon">
+                      <Heart className="w-4 h-4" />
                     </Button>
                   </Link>
+                  
                   {/* Show Dashboard for landlords - include loading state for profile */}
                   {(profile?.role === 'landlord' || (!profile && user)) && (
                     <Link href="/dashboard">
@@ -424,15 +421,15 @@ export default function HomePage() {
                       </Button>
                     </Link>
                   )}
-                  <Button variant="outline" className="font-medium bg-transparent" onClick={handleSignOut}>
-                    Logout
-                  </Button>
+                  
                   {/* Show Post Listing for landlords or while profile is loading */}
                   {(profile?.role === 'landlord' || (!profile && user)) && (
                     <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
                       Post Listing
                     </Button>
                   )}
+                  
+                  <UserDropdown />
                 </>
               ) : (
                 <>
