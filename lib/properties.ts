@@ -28,10 +28,6 @@ export async function getProperties(options?: {
       .from('properties')
       .select(`
         *,
-        profiles!landlord_id (
-          full_name,
-          email
-        ),
         property_images (
           id,
           image_url,
@@ -123,10 +119,6 @@ export async function searchProperties(searchTerm: string, options?: {
       .from('properties')
       .select(`
         *,
-        profiles!landlord_id (
-          full_name,
-          email
-        ),
         property_images (
           id,
           image_url,
@@ -242,7 +234,7 @@ export function formatPropertyForFrontend(property: PropertyWithDetails) {
     image,
     images, // Add all images for carousel
     type: property.property_type,
-    landlord: property.profiles?.full_name || property.profiles?.email || 'Unknown',
+    landlord: property.profiles?.full_name || property.profiles?.email || 'Property Owner',
     available: property.available,
     description: property.description,
     address: property.address,
