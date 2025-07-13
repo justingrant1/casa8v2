@@ -139,19 +139,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error }
       }
 
-      // Create profile after successful signup
+      // Create profile only if it doesn't already exist
       if (data.user) {
-        const { error: profileError } = await supabase
+        const { data: existingProfile, error: fetchError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            full_name: userData.full_name,
-            role: userData.role
-          })
+          .select('id')
+          .eq('id', data.user.id)
+          .single()
 
-        if (profileError) {
-          console.error('Error creating profile:', profileError)
+        if (fetchError && fetchError.code !== 'PGRST116') { // Ignore 'not found' error
+          console.error('Error checking for existing profile:', fetchError)
+        }
+
+        if (!existingProfile) {
+          console.log('No existing profile found, creating a new one...')
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email!,
+              full_name: userData.full_name,
+              role: userData.role
+            })
+
+          if (profileError) {
+            console.error('Error creating profile:', profileError)
+          }
+        } else {
+          console.log('Existing profile found, skipping profile creation.')
         }
 
         // Auto-login the user after successful registration
