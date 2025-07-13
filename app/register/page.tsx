@@ -22,7 +22,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const defaultRole = searchParams.get("role") || "tenant"
-  const { signUp, signInWithGoogle } = useAuth()
+  const { signUp, signInWithGoogle, completeOnboarding } = useAuth()
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -142,34 +142,35 @@ export default function RegisterPage() {
   }
 
   const handleOnboardingComplete = async (onboardingData: any) => {
-    try {
-      // Update user profile with onboarding data
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            has_section8: onboardingData.hasSection8 === 'yes',
-            voucher_bedrooms: onboardingData.voucherBedrooms,
-            preferred_city: onboardingData.preferredCity,
-            onboarding_completed: true
-          })
-          .eq('id', user.id)
+    console.log('🚀 Register Page: handleOnboardingComplete called with:', onboardingData)
+    setIsLoading(true)
+    setError('')
 
-        if (error) {
-          console.error('Error updating profile:', error)
-        }
+    try {
+      console.log('🔄 Calling completeOnboarding from auth context...')
+      const result = await completeOnboarding(onboardingData)
+      
+      console.log('📋 completeOnboarding result:', result)
+
+      if (result.error) {
+        throw result.error
       }
 
+      console.log('✅ Onboarding completed successfully!')
+      
       // Close onboarding and redirect to home
       setShowOnboarding(false)
-      router.push("/")
-    } catch (error) {
-      console.error('Error completing onboarding:', error)
-      // Still redirect to home even if there's an error
-      setShowOnboarding(false)
-      router.push("/")
+      
+      // Show success message
+      alert('Welcome to Casa8! Your preferences have been saved.')
+      
+      // Use window.location.href for a full refresh to ensure all states are updated
+      window.location.href = '/'
+    } catch (error: any) {
+      console.error('❌ Error completing onboarding:', error)
+      setError(error.message || 'An error occurred while saving your preferences.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
