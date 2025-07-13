@@ -252,6 +252,7 @@ export default function PropertyDetailPage() {
             amenities: data.amenities || [],
             available: data.available,
             images: data.property_images?.map((img: { image_url: string }) => img.image_url) || ["/placeholder.svg"],
+            landlord_id: data.landlord_id, // Add this for applications
             landlord: {
               name: data.profiles?.full_name || "Property Owner",
               avatar: "/placeholder.svg",
@@ -564,7 +565,9 @@ export default function PropertyDetailPage() {
         property={{
           title: property.title,
           id: property.id,
+          landlord_id: property.landlord_id,
         }}
+        landlord={property.landlord}
       />
 
       {/* Footer */}

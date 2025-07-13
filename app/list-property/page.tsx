@@ -71,6 +71,7 @@ export default function ListPropertyPage() {
     includePhoneNumber: true,
     allowChat: true,
     contactPhoneNumber: "",
+    voucherSizesAccepted: [] as number[],
   })
 
   useEffect(() => {
@@ -127,6 +128,7 @@ export default function ListPropertyPage() {
         includePhoneNumber: !!property.contact_phone,
         allowChat: property.allow_chat || false,
         contactPhoneNumber: property.contact_phone || "",
+        voucherSizesAccepted: property.voucher_sizes_accepted || [],
       })
       
       // Set existing images and videos
@@ -512,6 +514,77 @@ export default function ListPropertyPage() {
                     onChange={(e) => handleInputChange("sqft", e.target.value)}
                     required
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 8 Voucher Acceptance */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Section 8 Housing Voucher Acceptance</CardTitle>
+              <CardDescription>
+                Select which voucher sizes you will accept for this property. 
+                By default, your property bedroom count is selected, but you may accept larger vouchers too.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
+                <Label>Voucher Sizes Accepted</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {[0, 1, 2, 3, 4, 5].map((size) => (
+                    <div key={size} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`voucher-${size}`}
+                        checked={formData.voucherSizesAccepted.includes(size)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData(prev => ({
+                              ...prev,
+                              voucherSizesAccepted: [...prev.voucherSizesAccepted, size].sort((a, b) => a - b)
+                            }))
+                          } else {
+                            setFormData(prev => ({
+                              ...prev,
+                              voucherSizesAccepted: prev.voucherSizesAccepted.filter(s => s !== size)
+                            }))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`voucher-${size}`} className="text-sm">
+                        {size === 0 ? "Studio" : `${size} BR`}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+
+                {formData.voucherSizesAccepted.length > 0 && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium">Accepted Voucher Sizes:</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.voucherSizesAccepted.map((size) => (
+                        <Badge key={size} variant="secondary">
+                          {size === 0 ? "Studio" : `${size} Bedroom`} Voucher
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs">i</span>
+                    </div>
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">Section 8 Housing Choice Voucher Program</p>
+                      <p>
+                        Section 8 vouchers help qualified tenants pay rent. Voucher sizes correspond to the maximum 
+                        number of bedrooms a family can rent. For example, a family with a 2-bedroom voucher can 
+                        rent properties with 2 or fewer bedrooms, but you may also accept their voucher for larger units.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
