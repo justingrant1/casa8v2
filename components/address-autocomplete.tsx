@@ -39,7 +39,7 @@ export function AddressAutocomplete({
   className = ""
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+  const autocompleteRef = useRef<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isManualEntry, setIsManualEntry] = useState(false)
   const [manualAddress, setManualAddress] = useState("")
@@ -76,8 +76,8 @@ export function AddressAutocomplete({
   useEffect(() => {
     if (!isGoogleLoaded || !inputRef.current || isManualEntry) return
 
-    // Initialize autocomplete
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+    // Initialize autocomplete (keeping the current implementation for now)
+    const autocomplete = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
       types: ["address"],
       componentRestrictions: { country: "us" }
     })
@@ -101,7 +101,7 @@ export function AddressAutocomplete({
       }
 
       // Extract address components
-      place.address_components.forEach((component) => {
+      place.address_components.forEach((component: any) => {
         const types = component.types
         if (types.includes("street_number")) {
           addressData.street_number = component.long_name
@@ -126,7 +126,7 @@ export function AddressAutocomplete({
 
     return () => {
       if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current)
+        (window as any).google.maps.event.clearInstanceListeners(autocompleteRef.current)
       }
     }
   }, [isGoogleLoaded, isManualEntry, onAddressSelect])
