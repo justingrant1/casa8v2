@@ -16,124 +16,9 @@ import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
+import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles } from "@/lib/location"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
-
-// Mock data for properties (expanded list)
-const allProperties = [
-  {
-    id: 1,
-    title: "Modern Downtown Apartment",
-    price: 2500,
-    location: "Downtown, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Apartment",
-    landlord: "John Smith",
-    available: true,
-    amenities: ["Gym", "Pool", "Parking", "Pet Friendly"],
-  },
-  {
-    id: 2,
-    title: "Cozy Suburban House",
-    price: 3200,
-    location: "Bellevue, WA",
-    bedrooms: 3,
-    bathrooms: 2.5,
-    sqft: 1800,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "Sarah Johnson",
-    available: true,
-    amenities: ["Garage", "Garden", "Fireplace"],
-  },
-  {
-    id: 3,
-    title: "Luxury Waterfront Condo",
-    price: 4500,
-    location: "Waterfront, Seattle",
-    bedrooms: 2,
-    bathrooms: 2,
-    sqft: 1400,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Condo",
-    landlord: "Mike Davis",
-    available: true,
-    amenities: ["Water View", "Concierge", "Gym", "Parking"],
-  },
-  {
-    id: 4,
-    title: "Studio in Capitol Hill",
-    price: 1800,
-    location: "Capitol Hill, Seattle",
-    bedrooms: 1,
-    bathrooms: 1,
-    sqft: 600,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Studio",
-    landlord: "Emma Wilson",
-    available: true,
-    amenities: ["Laundry", "Internet"],
-  },
-  {
-    id: 5,
-    title: "Family Home with Yard",
-    price: 2800,
-    location: "Redmond, WA",
-    bedrooms: 4,
-    bathrooms: 3,
-    sqft: 2200,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "House",
-    landlord: "David Brown",
-    available: true,
-    amenities: ["Garage", "Garden", "Pet Friendly", "Storage"],
-  },
-  {
-    id: 6,
-    title: "Penthouse Suite",
-    price: 6000,
-    location: "Belltown, Seattle",
-    bedrooms: 3,
-    bathrooms: 3,
-    sqft: 2000,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Penthouse",
-    landlord: "Lisa Anderson",
-    available: true,
-    amenities: ["City View", "Balcony", "Concierge", "Gym"],
-  },
-  {
-    id: 7,
-    title: "Charming Townhouse",
-    price: 2900,
-    location: "Kirkland, WA",
-    bedrooms: 3,
-    bathrooms: 2.5,
-    sqft: 1600,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Townhouse",
-    landlord: "Robert Wilson",
-    available: true,
-    amenities: ["Garage", "Patio", "Storage"],
-  },
-  {
-    id: 8,
-    title: "Loft in Pioneer Square",
-    price: 2200,
-    location: "Pioneer Square, Seattle",
-    bedrooms: 1,
-    bathrooms: 1,
-    sqft: 900,
-    image: "/placeholder.svg?height=300&width=400",
-    type: "Loft",
-    landlord: "Jennifer Lee",
-    available: false,
-    amenities: ["High Ceilings", "Exposed Brick", "Laundry"],
-  },
-]
 
 export default function SearchPage() {
   const searchParams = useSearchParams()
@@ -147,9 +32,23 @@ export default function SearchPage() {
   const [bedrooms, setBedrooms] = useState("any")
   const [bathrooms, setBathrooms] = useState("any")
   const [propertyType, setPropertyType] = useState("any")
-  const [sortBy, setSortBy] = useState("newest")
+  const [sortBy, setSortBy] = useState("distance")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+
+  // Properties and location state
+  const [allProperties, setAllProperties] = useState<any[]>([])
+  const [propertiesLoading, setPropertiesLoading] = useState(true)
+  const [userLocation, setUserLocation] = useState<{
+    city: string
+    state: string
+    coordinates: { lat: number; lng: number }
+  } | null>(null)
+  const [searchLocation, setSearchLocation] = useState<{
+    city: string
+    state: string
+    coordinates: { lat: number; lng: number }
+  } | null>(null)
 
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
@@ -179,6 +78,87 @@ export default function SearchPage() {
     "Exposed Brick",
   ]
 
+  // Fetch user location on mount
+  useEffect(() => {
+    async function fetchUserLocation() {
+      try {
+        const locationData = await getUserLocationByIP()
+        
+        if (locationData) {
+          setUserLocation({
+            city: locationData.city,
+            state: locationData.state,
+            coordinates: {
+              lat: locationData.latitude,
+              lng: locationData.longitude
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching user location:', error)
+      }
+    }
+
+    fetchUserLocation()
+  }, [])
+
+  // Fetch properties from database
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        setPropertiesLoading(true)
+        const data = await getProperties({ limit: 50 }) // Get more properties for search
+        let formattedProperties = data.map(formatPropertyForFrontend)
+        
+        // Add mock coordinates and amenities for demonstration
+        formattedProperties = formattedProperties.map((property, index) => ({
+          ...property,
+          coordinates: {
+            // Mock coordinates around major US cities for demonstration
+            lat: 40.7128 + (Math.random() - 0.5) * 10, // Wider area around NYC
+            lng: -74.0060 + (Math.random() - 0.5) * 10
+          },
+          amenities: [
+            "Parking", "Laundry", "Internet",
+            ...(Math.random() > 0.5 ? ["Gym"] : []),
+            ...(Math.random() > 0.7 ? ["Pool"] : []),
+            ...(Math.random() > 0.6 ? ["Pet Friendly"] : []),
+            ...(Math.random() > 0.8 ? ["Garage"] : []),
+          ],
+          available: Math.random() > 0.1 // 90% available
+        }))
+
+        setAllProperties(formattedProperties)
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+      } finally {
+        setPropertiesLoading(false)
+      }
+    }
+
+    fetchProperties()
+  }, [])
+
+  // Handle URL search parameters
+  useEffect(() => {
+    const city = searchParams.get('city')
+    const state = searchParams.get('state')
+    const beds = searchParams.get('bedrooms')
+    
+    if (city && state) {
+      setLocationQuery(`${city}, ${state}`)
+      setSearchLocation({
+        city,
+        state,
+        coordinates: { lat: 0, lng: 0 } // Will be updated when location is geocoded
+      })
+    }
+    
+    if (beds) {
+      setBedrooms(beds)
+    }
+  }, [searchParams])
+
   const openContactModal = (property: any) => {
     setContactModal({
       isOpen: true,
@@ -199,16 +179,18 @@ export default function SearchPage() {
   }
 
   const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities((prev) => (prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]))
+    setSelectedAmenities((prev) => (prev.includes(amenity) ? prev.filter((a: string) => a !== amenity) : [...prev, amenity]))
   }
 
   const clearAllFilters = () => {
     setSearchQuery("")
+    setLocationQuery("")
     setPriceRange([1000, 5000])
     setBedrooms("any")
     setBathrooms("any")
     setPropertyType("any")
     setSelectedAmenities([])
+    setSearchLocation(null)
   }
 
   // Filter properties based on search criteria
@@ -617,7 +599,7 @@ export default function SearchPage() {
 
                       {/* Amenities */}
                       <div className="flex flex-wrap gap-2">
-                        {property.amenities.slice(0, 3).map((amenity) => (
+                        {property.amenities.slice(0, 3).map((amenity: string) => (
                           <Badge key={amenity} variant="secondary" className="text-xs font-medium">
                             {amenity}
                           </Badge>
