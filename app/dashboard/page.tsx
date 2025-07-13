@@ -305,26 +305,13 @@ export default function LandlordDashboard() {
     try {
       await deleteProperty(propertyId.toString(), user.id)
       
-      // Remove from local state immediately
+      // Remove from local state
       setLandlordProperties(prev => prev.filter(p => p.id !== propertyId))
-      
-      // Also remove from status tracking
-      setPropertyStatuses(prev => {
-        const newStatuses = { ...prev }
-        delete newStatuses[propertyId]
-        return newStatuses
-      })
       
       toast({
         title: "Property deleted",
         description: "Property has been successfully removed from your listings"
       })
-      
-      // Refresh the properties list to ensure consistency
-      setTimeout(() => {
-        fetchLandlordProperties()
-      }, 1000)
-      
     } catch (error) {
       console.error('Error deleting property:', error)
       toast({
@@ -332,9 +319,6 @@ export default function LandlordDashboard() {
         description: "Failed to delete property. Please try again.",
         variant: "destructive"
       })
-      
-      // Refresh properties on error to ensure UI consistency
-      fetchLandlordProperties()
     }
   }
 
