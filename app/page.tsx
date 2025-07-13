@@ -257,7 +257,7 @@ export default function HomePage() {
   const [locationLoading, setLocationLoading] = useState(true)
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
-    landlord?: { name: string; phone: string; email: string }
+    landlord?: { id: string; name: string; phone: string; email: string }
     property?: { title: string; id: string }
   }>({
     isOpen: false,
@@ -344,6 +344,7 @@ export default function HomePage() {
     setContactModal({
       isOpen: true,
       landlord: {
+        id: property.landlord_id || 'temp-id',
         name: property.landlord,
         phone: "(555) 123-4567",
         email: `${property.landlord.toLowerCase().replace(" ", ".")}@email.com`,
@@ -382,9 +383,17 @@ export default function HomePage() {
   }
 
   const handleOnboardingComplete = async (data: any) => {
-    const result = await completeOnboarding(data)
-    if (!result.error) {
-      setShowOnboarding(false)
+    try {
+      const result = await completeOnboarding(data)
+      if (!result.error) {
+        setShowOnboarding(false)
+        // Redirect to homepage after successful onboarding
+        router.push('/')
+      } else {
+        console.error('Error completing onboarding:', result.error)
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error)
     }
   }
 
