@@ -15,6 +15,8 @@ import { Home, User, Eye, EyeOff, Shield, Users, Star, ArrowRight, AlertCircle, 
 import { useAuth } from "@/lib/auth"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import { TenantOnboarding } from "@/components/tenant-onboarding"
+import { supabase } from "@/lib/supabase"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -37,6 +39,8 @@ export default function RegisterPage() {
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [registrationSuccess, setRegistrationSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,12 +75,14 @@ export default function RegisterPage() {
       }
 
       console.log("Registration successful, user is now logged in")
+      setRegistrationSuccess(true)
       
-      // Redirect based on user role after successful registration and auto-login
+      // Show onboarding for tenants, redirect landlords to dashboard
       if (formData.role === "landlord") {
         router.push("/dashboard")
       } else {
-        router.push("/")
+        // Show tenant onboarding modal
+        setShowOnboarding(true)
       }
     } catch (error: any) {
       console.error("Registration error:", error)
@@ -132,6 +138,38 @@ export default function RegisterPage() {
         return "Strong"
       default:
         return ""
+    }
+  }
+
+  const handleOnboardingComplete = async (onboardingData: any) => {
+    try {
+      // Update user profile with onboarding data
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            has_section8: onboardingData.hasSection8 === 'yes',
+            voucher_bedrooms: onboardingData.voucherBedrooms,
+            preferred_city: onboardingData.preferredCity,
+            onboarding_completed: true
+          })
+          .eq('id', user.id)
+
+        if (error) {
+          console.error('Error updating profile:', error)
+        }
+      }
+
+      // Close onboarding and redirect to home
+      setShowOnboarding(false)
+      router.push("/")
+    } catch (error) {
+      console.error('Error completing onboarding:', error)
+      // Still redirect to home even if there's an error
+      setShowOnboarding(false)
+      router.push("/")
     }
   }
 
@@ -537,6 +575,16 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* Tenant Onboarding Modal */}
+      <TenantOnboarding
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={() => {
+          setShowOnboarding(false)
+          router.push("/")
+        }}
+      />
     </div>
   )
 }

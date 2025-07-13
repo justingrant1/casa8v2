@@ -325,6 +325,6 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Last Updated**: January 13, 2025
+**Last Updated**: January 13, 2025 - v2.1
 **Version**: 0.1.0
 **Status**: Active Development
