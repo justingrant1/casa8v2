@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Search, MapPin, Bed, Bath, Square, Heart, SlidersHorizontal, X } from "lucide-react"
+import { Search, MapPin, Bed, Bath, Square, Heart, SlidersHorizontal, X, List, Map } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
@@ -35,6 +35,7 @@ export default function SearchPage() {
   const [sortBy, setSortBy] = useState("distance")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
+  const [viewMode, setViewMode] = useState<"list" | "map">("list")
 
   // Properties and location state
   const [allProperties, setAllProperties] = useState<any[]>([])
@@ -492,6 +493,28 @@ export default function SearchPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                    <Button
+                      variant={viewMode === "list" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                      className="px-3 py-2 h-9 font-medium"
+                    >
+                      <List className="w-4 h-4 mr-2" />
+                      List
+                    </Button>
+                    <Button
+                      variant={viewMode === "map" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("map")}
+                      className="px-3 py-2 h-9 font-medium"
+                    >
+                      <Map className="w-4 h-4 mr-2" />
+                      Map
+                    </Button>
+                  </div>
+
                   <Label htmlFor="sort" className="text-sm font-medium text-gray-700 whitespace-nowrap">
                     Sort by:
                   </Label>
@@ -511,7 +534,7 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Property Grid */}
+            {/* Results Content - List or Map View */}
             {sortedProperties.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-lg border p-12 text-center">
                 <Search className="w-16 h-16 mx-auto mb-6 text-gray-300" />
@@ -521,7 +544,57 @@ export default function SearchPage() {
                   Clear All Filters
                 </Button>
               </div>
+            ) : viewMode === "map" ? (
+              /* Map View */
+              <div className="bg-white rounded-2xl shadow-lg border overflow-hidden">
+                <div className="h-[600px] bg-gray-100 flex items-center justify-center relative">
+                  <div className="text-center">
+                    <Map className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">Map View</h3>
+                    <p className="text-gray-600 mb-4">Interactive map with property locations</p>
+                    <Badge className="bg-blue-100 text-blue-800">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      {sortedProperties.length} properties
+                    </Badge>
+                  </div>
+                  
+                  {/* Property overlay cards for map view */}
+                  <div className="absolute top-4 left-4 right-4 bottom-4 pointer-events-none">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full overflow-hidden">
+                      {sortedProperties.slice(0, 6).map((property, index) => (
+                        <div
+                          key={property.id}
+                          className="pointer-events-auto bg-white rounded-lg shadow-lg p-4 border transform hover:scale-105 transition-transform"
+                          style={{
+                            position: 'absolute',
+                            top: `${(index % 3) * 25 + 10}%`,
+                            left: `${Math.floor(index / 3) * 35 + 10}%`,
+                            width: '200px',
+                            opacity: 0.9
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Image
+                              src={property.image || "/placeholder.svg"}
+                              alt={property.title}
+                              width={60}
+                              height={60}
+                              className="rounded-lg object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-sm truncate">{property.title}</h4>
+                              <p className="text-xs text-gray-600 truncate">{property.location}</p>
+                              <p className="text-sm font-bold text-primary">${property.price.toLocaleString()}/mo</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
+              /* List View */
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 {sortedProperties.map((property) => (
                   <Card
