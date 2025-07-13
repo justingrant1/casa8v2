@@ -11,6 +11,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
+import { LocationSearch } from "@/components/location-search"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
@@ -438,13 +439,12 @@ export default function HomePage() {
             <div className="max-w-6xl mx-auto">
               <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 border border-white/20">
                 <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="relative flex-1 min-w-0">
-                    <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <Input
-                      placeholder="Enter city, neighborhood, or ZIP code..."
-                      className="pl-12 h-14 text-lg border-0 focus-visible:ring-2 focus-visible:ring-primary/20 bg-gray-50"
-                    />
-                  </div>
+                  <LocationSearch
+                    placeholder="Enter city, neighborhood, or ZIP code..."
+                    onLocationSelect={(location) => {
+                      console.log('Location selected:', location)
+                    }}
+                  />
 
                   <div className="flex-shrink-0 w-full lg:w-48">
                     <Select>

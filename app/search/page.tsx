@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -13,6 +14,10 @@ import { Search, MapPin, Bed, Bath, Square, Heart, SlidersHorizontal, X } from "
 import Link from "next/link"
 import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
+import { LocationSearch } from "@/components/location-search"
+import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
+import { useAuth } from "@/lib/auth"
+import { useFavorites } from "@/lib/favorites-context"
 
 // Mock data for properties (expanded list)
 const allProperties = [
@@ -131,7 +136,13 @@ const allProperties = [
 ]
 
 export default function SearchPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { user } = useAuth()
+  const { toggleFavorite, isFavorite } = useFavorites()
+  
   const [searchQuery, setSearchQuery] = useState("")
+  const [locationQuery, setLocationQuery] = useState("")
   const [priceRange, setPriceRange] = useState([1000, 5000])
   const [bedrooms, setBedrooms] = useState("any")
   const [bathrooms, setBathrooms] = useState("any")
@@ -143,7 +154,7 @@ export default function SearchPage() {
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
-    property?: { title: string; id: number }
+    property?: { title: string; id: string }
   }>({
     isOpen: false,
   })
@@ -178,7 +189,7 @@ export default function SearchPage() {
       },
       property: {
         title: property.title,
-        id: property.id,
+        id: property.id.toString(),
       },
     })
   }
@@ -296,6 +307,41 @@ export default function SearchPage() {
           </div>
         </div>
       </header>
+
+      {/* Search Header */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-6">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Find Your Perfect Home</h1>
+            <div className="flex flex-col lg:flex-row gap-4">
+              <LocationSearch
+                placeholder="Enter city, neighborhood, or ZIP code..."
+                className="flex-1"
+                onLocationSelect={(location) => {
+                  console.log('Search location selected:', location)
+                  setLocationQuery(`${location.city}, ${location.state}`)
+                }}
+              />
+              <div className="flex-shrink-0 w-full lg:w-48">
+                <Select value={bedrooms} onValueChange={setBedrooms}>
+                  <SelectTrigger className="h-14 text-lg border-gray-200">
+                    <SelectValue placeholder="Select bedrooms" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any bedrooms</SelectItem>
+                    <SelectItem value="studio">Studio</SelectItem>
+                    <SelectItem value="1">1 bedroom</SelectItem>
+                    <SelectItem value="2">2 bedrooms</SelectItem>
+                    <SelectItem value="3">3 bedrooms</SelectItem>
+                    <SelectItem value="4">4 bedrooms</SelectItem>
+                    <SelectItem value="5+">5+ bedrooms</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
