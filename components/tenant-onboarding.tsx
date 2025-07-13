@@ -10,6 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Home, MapPin } from "lucide-react"
 import { Loader } from '@googlemaps/js-api-loader'
 
+interface CityPrediction {
+  description: string
+  place_id: string
+  structured_formatting: {
+    main_text: string
+    secondary_text: string
+  }
+}
+
 interface TenantOnboardingProps {
   isOpen: boolean
   onComplete: (data: any) => void
@@ -22,12 +31,17 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
     voucherBedrooms: '',
     preferredCity: '',
   })
-  const cityInputRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<any>(null)
+  const [cityQuery, setCityQuery] = useState('')
+  const [predictions, setPredictions] = useState<CityPrediction[]>([])
+  const [showPredictions, setShowPredictions] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
+  const cityInputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const autocompleteServiceRef = useRef<any>(null)
 
   useEffect(() => {
-    const initializeAutocomplete = async () => {
+    const initializeGoogleMaps = async () => {
       if (!isOpen) return
 
       try {
@@ -38,211 +52,94 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
         })
 
         await loader.load()
-        setIsLoaded(true)
-
-        if (cityInputRef.current && window.google) {
-          const autocomplete = new window.google.maps.places.Autocomplete(cityInputRef.current, {
-            types: ['(cities)'],
-            componentRestrictions: { country: 'us' },
-            fields: ['formatted_address', 'geometry', 'address_components']
-          })
-
-          autocompleteRef.current = autocomplete
-
-          // Style the autocomplete dropdown with better mobile support
-          const addAutocompleteStyles = () => {
-            // Remove any existing styles first
-            const existingStyle = document.getElementById('places-autocomplete-styles')
-            if (existingStyle) {
-              existingStyle.remove()
-            }
-
-            const style = document.createElement('style')
-            style.id = 'places-autocomplete-styles'
-            style.textContent = `
-              .pac-container {
-                z-index: 99999 !important;
-                font-size: 16px !important;
-                border-radius: 8px !important;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-                border: 1px solid #d1d5db !important;
-                background: white !important;
-                margin-top: 4px !important;
-                position: absolute !important;
-              }
-              .pac-item {
-                padding: 16px !important;
-                border-bottom: 1px solid #f3f4f6 !important;
-                cursor: pointer !important;
-                background: white !important;
-                position: relative !important;
-                -webkit-user-select: none !important;
-                -moz-user-select: none !important;
-                user-select: none !important;
-                -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-                touch-action: manipulation !important;
-                font-size: 16px !important;
-                line-height: 1.4 !important;
-                display: block !important;
-                width: 100% !important;
-                box-sizing: border-box !important;
-              }
-              .pac-item:hover,
-              .pac-item.pac-item-selected,
-              .pac-item:active,
-              .pac-item:focus {
-                background-color: #f8fafc !important;
-                color: #1f2937 !important;
-              }
-              .pac-item * {
-                pointer-events: none !important;
-              }
-              .pac-item-query {
-                font-weight: 600 !important;
-                color: #111827 !important;
-              }
-              .pac-matched {
-                font-weight: 700 !important;
-                color: #2563eb !important;
-              }
-              @media (max-width: 768px) {
-                .pac-container {
-                  font-size: 16px !important;
-                  width: 100% !important;
-                  min-width: unset !important;
-                  left: 0 !important;
-                  right: 0 !important;
-                  margin: 4px 0 0 0 !important;
-                }
-                .pac-item {
-                  padding: 20px 16px !important;
-                  min-height: 56px !important;
-                  font-size: 16px !important;
-                  border-bottom: 1px solid #e5e7eb !important;
-                }
-              }
-            `
-            document.head.appendChild(style)
-          }
-
-          // Add styles immediately
-          addAutocompleteStyles()
-
-          const handlePlaceChanged = () => {
-            const place = autocomplete.getPlace()
-
-            if (!place.geometry?.location && !place.formatted_address) {
-              return
-            }
-
-            // Parse city and state from address components or use formatted address
-            let city = ''
-            let state = ''
-
-            if (place.address_components) {
-              for (const component of place.address_components) {
-                const types = component.types
-                
-                if (types.includes('locality')) {
-                  city = component.long_name
-                } else if (types.includes('administrative_area_level_1')) {
-                  state = component.short_name
-                } else if (types.includes('sublocality') && !city) {
-                  city = component.long_name
-                }
-              }
-            }
-
-            // Format as "City, State" or fall back to formatted address
-            const cityState = state ? `${city}, ${state}` : city || place.formatted_address || ''
-            
-            // Update both the input value and form state
-            if (cityInputRef.current) {
-              cityInputRef.current.value = cityState
-            }
-            setFormData(prev => ({ ...prev, preferredCity: cityState }))
-          }
-
-          autocomplete.addListener('place_changed', handlePlaceChanged)
-
-          // Also handle direct click events on pac-items
-          const handlePacItemClick = () => {
-            setTimeout(() => {
-              handlePlaceChanged()
-            }, 100)
-          }
-
-          // Monitor for pac-container creation and add click handlers
-          const addPacItemListeners = () => {
-            const pacContainer = document.querySelector('.pac-container')
-            if (pacContainer) {
-              const pacItems = pacContainer.querySelectorAll('.pac-item')
-              pacItems.forEach(item => {
-                item.addEventListener('click', handlePacItemClick)
-                item.addEventListener('touchend', handlePacItemClick)
-              })
-            }
-          }
-
-          // Use MutationObserver to detect when pac-container is added to DOM
-          const observer = new MutationObserver(() => {
-            addPacItemListeners()
-          })
-
-          observer.observe(document.body, {
-            childList: true,
-            subtree: true
-          })
-
-          // Store observer for cleanup
-          ;(autocompleteRef.current as any).observer = observer
-
-          // Add mobile touch event handling
-          if (cityInputRef.current) {
-            const input = cityInputRef.current
-            
-            // Prevent zoom on focus for iOS
-            input.addEventListener('touchstart', () => {
-              if (input.style.fontSize !== '16px') {
-                input.style.fontSize = '16px'
-              }
-            })
-
-            // Add better mobile interaction
-            input.addEventListener('focus', () => {
-              setTimeout(() => {
-                const pacContainer = document.querySelector('.pac-container') as HTMLElement
-                if (pacContainer) {
-                  pacContainer.style.zIndex = '9999'
-                  pacContainer.style.position = 'fixed'
-                  
-                  // Ensure dropdown is positioned correctly on mobile
-                  const inputRect = input.getBoundingClientRect()
-                  pacContainer.style.top = `${inputRect.bottom + window.scrollY + 4}px`
-                  pacContainer.style.left = `${inputRect.left + window.scrollX}px`
-                  pacContainer.style.width = `${inputRect.width}px`
-                }
-              }, 100)
-            })
-          }
+        
+        // Initialize the AutocompleteService
+        if ((window as any).google && (window as any).google.maps && (window as any).google.maps.places) {
+          autocompleteServiceRef.current = new (window as any).google.maps.places.AutocompleteService()
+          setIsLoaded(true)
         }
       } catch (error) {
         console.error('Error loading Google Maps:', error)
       }
     }
 
-    initializeAutocomplete()
+    initializeGoogleMaps()
+  }, [isOpen])
 
-    return () => {
-      if (autocompleteRef.current && window.google) {
-        window.google.maps.event.clearInstanceListeners(autocompleteRef.current)
+  // Debounced city search
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (cityQuery.length > 2 && autocompleteServiceRef.current) {
+        setIsLoading(true)
+        
+        try {
+          const request = {
+            input: cityQuery,
+            types: ['(cities)'],
+            componentRestrictions: { country: 'us' }
+          }
+
+          autocompleteServiceRef.current.getPlacePredictions(
+            request,
+            (predictions: CityPrediction[] | null, status: any) => {
+              setIsLoading(false)
+              if (status === 'OK' && predictions) {
+                setPredictions(predictions.slice(0, 5)) // Limit to 5 results
+                setShowPredictions(true)
+              } else {
+                setPredictions([])
+                setShowPredictions(false)
+              }
+            }
+          )
+        } catch (error) {
+          console.error('Error fetching predictions:', error)
+          setIsLoading(false)
+          setPredictions([])
+          setShowPredictions(false)
+        }
+      } else {
+        setPredictions([])
+        setShowPredictions(false)
       }
-      // Clean up MutationObserver
-      if (autocompleteRef.current?.observer) {
-        autocompleteRef.current.observer.disconnect()
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [cityQuery])
+
+  // Handle input change
+  const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setCityQuery(value)
+    setFormData(prev => ({ ...prev, preferredCity: value }))
+  }
+
+  // Handle city selection
+  const handleCitySelect = (prediction: CityPrediction) => {
+    const cityName = prediction.description
+    setCityQuery(cityName)
+    setFormData(prev => ({ ...prev, preferredCity: cityName }))
+    setShowPredictions(false)
+    setPredictions([])
+    
+    // Update input value
+    if (cityInputRef.current) {
+      cityInputRef.current.value = cityName
+    }
+  }
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          cityInputRef.current && !cityInputRef.current.contains(event.target as Node)) {
+        setShowPredictions(false)
       }
     }
-  }, [isOpen])
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleSubmit = () => {
     onComplete(formData)
@@ -301,12 +198,45 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
                   ref={cityInputRef}
                   placeholder="Enter city name (e.g., Seattle, WA)"
                   value={formData.preferredCity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, preferredCity: e.target.value }))}
-                  className="pl-10"
+                  onChange={handleCityInputChange}
+                  onFocus={() => {
+                    if (predictions.length > 0) {
+                      setShowPredictions(true)
+                    }
+                  }}
+                  className="pl-10 text-base"
+                  style={{ fontSize: '16px' }} // Prevent iOS zoom
                 />
-                {!isLoaded && (
+                {isLoading && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                  </div>
+                )}
+                
+                {/* Custom dropdown for city predictions */}
+                {showPredictions && predictions.length > 0 && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto"
+                  >
+                    {predictions.map((prediction, index) => (
+                      <div
+                        key={prediction.place_id}
+                        className="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 active:bg-gray-100 transition-colors duration-150"
+                        onClick={() => handleCitySelect(prediction)}
+                        onTouchEnd={(e) => {
+                          e.preventDefault()
+                          handleCitySelect(prediction)
+                        }}
+                      >
+                        <div className="text-sm font-medium text-gray-900">
+                          {prediction.structured_formatting.main_text}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {prediction.structured_formatting.secondary_text}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
