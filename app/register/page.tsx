@@ -156,22 +156,21 @@ export default function RegisterPage() {
         throw result.error
       }
 
-      console.log('✅ Onboarding completed successfully!')
+      console.log('✅ Onboarding completed successfully! Redirecting to homepage...')
       
       // Close onboarding and redirect to home
       setShowOnboarding(false)
       
-      // Show success message
-      alert('Welcome to Casa8! Your preferences have been saved.')
-      
-      // Use window.location.href for a full refresh to ensure all states are updated
-      window.location.href = '/'
+      // Use router.push for client-side navigation.
+      // A full refresh isn't necessary as the auth context will update.
+      router.push("/")
+
     } catch (error: any) {
       console.error('❌ Error completing onboarding:', error)
       setError(error.message || 'An error occurred while saving your preferences.')
-    } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Stop loading on error
     }
+    // On success, we don't need to set isLoading to false because we are navigating away.
   }
 
   return (
