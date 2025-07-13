@@ -223,11 +223,19 @@ export function formatPropertyForFrontend(property: PropertyWithDetails) {
   const images = property.property_images?.map(img => img.image_url) || ['/placeholder.svg?height=300&width=400']
   const image = images[0] // Keep first image for backward compatibility
   
+  // Format full address for display
+  const fullAddress = [
+    property.address,
+    property.city,
+    property.state,
+    property.zip_code
+  ].filter(Boolean).join(', ')
+  
   return {
     id: property.id,
     title: property.title,
     price: Number(property.price),
-    location: `${property.city}, ${property.state}`,
+    location: fullAddress || `${property.city}, ${property.state}`, // Fallback to city, state if no address
     bedrooms: property.bedrooms,
     bathrooms: Number(property.bathrooms),
     sqft: property.square_feet || 0,
