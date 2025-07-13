@@ -49,6 +49,50 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
 
           autocompleteRef.current = autocomplete
 
+          // Add mobile-friendly styles to the autocomplete dropdown
+          const autocompleteContainer = document.querySelector('.pac-container')
+          if (autocompleteContainer) {
+            const style = document.createElement('style')
+            style.textContent = `
+              .pac-container {
+                z-index: 9999 !important;
+                font-size: 16px !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+                border: 1px solid #e5e7eb !important;
+              }
+              .pac-item {
+                padding: 12px 16px !important;
+                border-bottom: 1px solid #f3f4f6 !important;
+                cursor: pointer !important;
+                -webkit-user-select: none !important;
+                user-select: none !important;
+                -webkit-tap-highlight-color: transparent !important;
+                touch-action: manipulation !important;
+              }
+              .pac-item:hover,
+              .pac-item.pac-item-selected {
+                background-color: #f9fafb !important;
+              }
+              .pac-item-query {
+                font-weight: 500 !important;
+              }
+              @media (max-width: 768px) {
+                .pac-container {
+                  font-size: 16px !important;
+                  min-width: 280px !important;
+                }
+                .pac-item {
+                  padding: 16px !important;
+                  min-height: 48px !important;
+                  display: flex !important;
+                  align-items: center !important;
+                }
+              }
+            `
+            document.head.appendChild(style)
+          }
+
           autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace()
 
@@ -78,6 +122,35 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
             const cityState = state ? `${city}, ${state}` : city
             setFormData(prev => ({ ...prev, preferredCity: cityState }))
           })
+
+          // Add mobile touch event handling
+          if (cityInputRef.current) {
+            const input = cityInputRef.current
+            
+            // Prevent zoom on focus for iOS
+            input.addEventListener('touchstart', () => {
+              if (input.style.fontSize !== '16px') {
+                input.style.fontSize = '16px'
+              }
+            })
+
+            // Add better mobile interaction
+            input.addEventListener('focus', () => {
+              setTimeout(() => {
+                const pacContainer = document.querySelector('.pac-container') as HTMLElement
+                if (pacContainer) {
+                  pacContainer.style.zIndex = '9999'
+                  pacContainer.style.position = 'fixed'
+                  
+                  // Ensure dropdown is positioned correctly on mobile
+                  const inputRect = input.getBoundingClientRect()
+                  pacContainer.style.top = `${inputRect.bottom + window.scrollY + 4}px`
+                  pacContainer.style.left = `${inputRect.left + window.scrollX}px`
+                  pacContainer.style.width = `${inputRect.width}px`
+                }
+              }, 100)
+            })
+          }
         }
       } catch (error) {
         console.error('Error loading Google Maps:', error)
