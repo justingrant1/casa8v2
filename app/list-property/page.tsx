@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, ArrowLeft } from "lucide-react"
+import { Upload, X, ArrowLeft, Star } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -703,8 +703,41 @@ export default function ListPropertyPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {formData.images.map((file, index) => {
                         const imageUrl = URL.createObjectURL(file)
+                        const isMainImage = index === 0
                         return (
-                          <div key={index} className="relative group">
+                          <div 
+                            key={`${file.name}-${index}`} 
+                            className="relative group cursor-move border-2 border-transparent hover:border-primary/30 rounded-lg transition-colors"
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", index.toString())
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                              e.currentTarget.classList.add('border-primary', 'scale-105')
+                            }}
+                            onDragLeave={(e) => {
+                              e.currentTarget.classList.remove('border-primary', 'scale-105')
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault()
+                              e.currentTarget.classList.remove('border-primary', 'scale-105')
+                              const draggedIndex = parseInt(e.dataTransfer.getData("text/plain"))
+                              const dropIndex = index
+                              
+                              if (draggedIndex !== dropIndex) {
+                                const newImages = [...formData.images]
+                                const draggedImage = newImages[draggedIndex]
+                                newImages.splice(draggedIndex, 1)
+                                newImages.splice(dropIndex, 0, draggedImage)
+                                
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: newImages
+                                }))
+                              }
+                            }}
+                          >
                             <div className="aspect-square bg-muted rounded-lg overflow-hidden">
                               <img 
                                 src={imageUrl}
@@ -713,6 +746,37 @@ export default function ListPropertyPage() {
                                 onLoad={() => URL.revokeObjectURL(imageUrl)}
                               />
                             </div>
+                            
+                            {isMainImage && (
+                              <Badge className="absolute top-2 left-2 bg-yellow-500 hover:bg-yellow-600 text-yellow-900">
+                                <Star className="w-3 h-3 mr-1 fill-current" />
+                                Main
+                              </Badge>
+                            )}
+                            
+                            {!isMainImage && (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="icon"
+                                className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+                                onClick={() => {
+                                  const newImages = [...formData.images]
+                                  const imageToMove = newImages[index]
+                                  newImages.splice(index, 1)
+                                  newImages.unshift(imageToMove)
+                                  
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    images: newImages
+                                  }))
+                                }}
+                                title="Set as main image"
+                              >
+                                <Star className="h-3 w-3" />
+                              </Button>
+                            )}
+                            
                             <Button
                               type="button"
                               variant="destructive"
@@ -722,10 +786,17 @@ export default function ListPropertyPage() {
                             >
                               <X className="h-4 w-4" />
                             </Button>
+                            
                             <div className="absolute bottom-1 left-1 right-1">
                               <p className="text-xs bg-black/50 text-white p-1 rounded truncate">
                                 {file.name}
                               </p>
+                            </div>
+                            
+                            <div className="absolute bottom-2 right-2">
+                              <Badge variant="secondary" className="text-xs h-5">
+                                #{index + 1}
+                              </Badge>
                             </div>
                           </div>
                         )
