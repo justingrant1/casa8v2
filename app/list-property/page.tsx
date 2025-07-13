@@ -18,6 +18,8 @@ import { useAuth } from "@/lib/auth"
 import { createPropertyWithImages, formatFormDataForDB, getPropertyForEdit, updatePropertyWithImages } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
 import { AddressAutocomplete, AddressData } from "@/components/address-autocomplete"
+import { EnhancedImageUpload } from "@/components/enhanced-image-upload"
+import { VideoUpload } from "@/components/video-upload"
 
 const amenitiesList = [
   "Air conditioning",
@@ -47,6 +49,7 @@ export default function ListPropertyPage() {
   const [addressData, setAddressData] = useState<AddressData | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isProcessingImages, setIsProcessingImages] = useState(false)
+  const [mainImageIndex, setMainImageIndex] = useState(0)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -654,138 +657,26 @@ export default function ListPropertyPage() {
                 </div>
               )}
 
-              {/* Image Upload */}
-              <div className="space-y-4">
-                <Label>{isEditing ? "Add New Photos" : "Property Photos"}</Label>
-                <div 
-                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 transition-colors hover:border-primary/50"
-                  onDragOver={(e) => {
-                    e.preventDefault()
-                    e.currentTarget.classList.add('border-primary', 'bg-primary/5')
-                  }}
-                  onDragLeave={(e) => {
-                    e.preventDefault()
-                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault()
-                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5')
-                    const files = e.dataTransfer.files
-                    if (files) {
-                      handleFileUpload("images", files)
-                    }
-                  }}
-                >
-                  <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <div className="mt-4">
-                      <Label htmlFor="images" className="cursor-pointer">
-                        <span className="text-primary hover:text-primary/80">Click to upload images</span>
-                        <span className="text-muted-foreground"> or drag and drop</span>
-                      </Label>
-                      <Input
-                        id="images"
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload("images", e.target.files)}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">PNG, JPG, WebP up to 10MB each</p>
-                    <p className="text-xs text-muted-foreground">Maximum 20 images</p>
-                  </div>
-                </div>
+              {/* Enhanced Image Upload */}
+              <EnhancedImageUpload
+                images={formData.images}
+                onImagesChange={(images) => setFormData(prev => ({ ...prev, images }))}
+                existingImages={existingImages}
+                isEditing={isEditing}
+                showMainSelector={true}
+                mainImageIndex={mainImageIndex}
+                onMainImageChange={setMainImageIndex}
+                maxImages={20}
+                maxFileSize={10}
+              />
 
-                {formData.images.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">New Images ({formData.images.length})</p>
-                      <div className="flex items-center gap-2">
-                        {formData.images.length >= 10 && (
-                          <Badge variant="secondary">Bulk Upload</Badge>
-                        )}
-                        {isProcessingImages && (
-                          <Badge variant="outline" className="text-xs">
-                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Processing...
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Upload Progress Bar */}
-                    {isProcessingImages && formData.images.length >= 10 && (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Processing {formData.images.length} images...</span>
-                          <span>{Math.round(uploadProgress)}%</span>
-                        </div>
-                        <Progress value={uploadProgress} className="w-full" />
-                        <p className="text-xs text-muted-foreground">
-                          Please wait while we prepare your images for upload
-                        </p>
-                      </div>
-                    )}
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {formData.images.map((file, index) => {
-                        const imageUrl = URL.createObjectURL(file)
-                        const isMainImage = index === 0
-                        return (
-                          <div 
-                            key={`${file.name}-${index}`} 
-                            className="relative group cursor-move border-2 border-transparent hover:border-primary/30 rounded-lg transition-colors"
-                          >
-                            <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                              <img 
-                                src={imageUrl}
-                                alt={file.name}
-                                className="w-full h-full object-cover"
-                                onLoad={() => URL.revokeObjectURL(imageUrl)}
-                              />
-                            </div>
-                            
-                            {isMainImage && (
-                              <Badge className="absolute top-2 left-2 bg-yellow-500 hover:bg-yellow-600 text-yellow-900">
-                                <Star className="w-3 h-3 mr-1 fill-current" />
-                                Main
-                              </Badge>
-                            )}
-                            
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => removeFile("images", index)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                            
-                            <div className="absolute bottom-2 right-2">
-                              <Badge variant="secondary" className="text-xs h-5">
-                                #{index + 1}
-                              </Badge>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Video Upload Placeholder */}
-              <div className="space-y-4">
-                <Label>Property Videos (Coming Soon)</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 bg-muted/30">
-                  <div className="text-center">
-                    <Play className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <p className="text-muted-foreground mt-2">Video upload feature coming soon!</p>
-                  </div>
-                </div>
-              </div>
+              {/* Video Upload */}
+              <VideoUpload
+                videos={formData.videos}
+                onVideosChange={(videos) => setFormData(prev => ({ ...prev, videos }))}
+                maxVideos={5}
+                maxFileSize={100}
+              />
             </CardContent>
           </Card>
 
