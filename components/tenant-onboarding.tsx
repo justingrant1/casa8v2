@@ -49,49 +49,84 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
 
           autocompleteRef.current = autocomplete
 
-          // Add mobile-friendly styles to the autocomplete dropdown
-          const autocompleteContainer = document.querySelector('.pac-container')
-          if (autocompleteContainer) {
+          // Style the autocomplete dropdown with better mobile support
+          const addAutocompleteStyles = () => {
+            // Remove any existing styles first
+            const existingStyle = document.getElementById('places-autocomplete-styles')
+            if (existingStyle) {
+              existingStyle.remove()
+            }
+
             const style = document.createElement('style')
+            style.id = 'places-autocomplete-styles'
             style.textContent = `
               .pac-container {
-                z-index: 9999 !important;
+                z-index: 99999 !important;
                 font-size: 16px !important;
                 border-radius: 8px !important;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-                border: 1px solid #e5e7eb !important;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+                border: 1px solid #d1d5db !important;
+                background: white !important;
+                margin-top: 4px !important;
+                position: absolute !important;
               }
               .pac-item {
-                padding: 12px 16px !important;
+                padding: 16px !important;
                 border-bottom: 1px solid #f3f4f6 !important;
                 cursor: pointer !important;
+                background: white !important;
+                position: relative !important;
                 -webkit-user-select: none !important;
+                -moz-user-select: none !important;
                 user-select: none !important;
-                -webkit-tap-highlight-color: transparent !important;
+                -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
                 touch-action: manipulation !important;
+                font-size: 16px !important;
+                line-height: 1.4 !important;
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
               }
               .pac-item:hover,
-              .pac-item.pac-item-selected {
-                background-color: #f9fafb !important;
+              .pac-item.pac-item-selected,
+              .pac-item:active,
+              .pac-item:focus {
+                background-color: #f8fafc !important;
+                color: #1f2937 !important;
+              }
+              .pac-item * {
+                pointer-events: none !important;
               }
               .pac-item-query {
-                font-weight: 500 !important;
+                font-weight: 600 !important;
+                color: #111827 !important;
+              }
+              .pac-matched {
+                font-weight: 700 !important;
+                color: #2563eb !important;
               }
               @media (max-width: 768px) {
                 .pac-container {
                   font-size: 16px !important;
-                  min-width: 280px !important;
+                  width: 100% !important;
+                  min-width: unset !important;
+                  left: 0 !important;
+                  right: 0 !important;
+                  margin: 4px 0 0 0 !important;
                 }
                 .pac-item {
-                  padding: 16px !important;
-                  min-height: 48px !important;
-                  display: flex !important;
-                  align-items: center !important;
+                  padding: 20px 16px !important;
+                  min-height: 56px !important;
+                  font-size: 16px !important;
+                  border-bottom: 1px solid #e5e7eb !important;
                 }
               }
             `
             document.head.appendChild(style)
           }
+
+          // Add styles immediately
+          addAutocompleteStyles()
 
           autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace()
