@@ -46,6 +46,7 @@ export default function ListPropertyPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editPropertyId, setEditPropertyId] = useState<string | null>(null)
   const [existingImages, setExistingImages] = useState<any[]>([])
+  const [existingVideos, setExistingVideos] = useState<any[]>([])
   const [addressData, setAddressData] = useState<AddressData | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isProcessingImages, setIsProcessingImages] = useState(false)
@@ -128,8 +129,9 @@ export default function ListPropertyPage() {
         contactPhoneNumber: property.contact_phone || "",
       })
       
-      // Set existing images
+      // Set existing images and videos
       setExistingImages(property.property_images || [])
+      setExistingVideos(property.property_videos || [])
     } catch (error) {
       console.error('Error loading property for edit:', error)
       toast({
@@ -215,6 +217,10 @@ export default function ListPropertyPage() {
     setExistingImages(prev => prev.filter(img => img.id !== imageId))
   }
 
+  const removeExistingVideo = (videoId: string) => {
+    setExistingVideos(prev => prev.filter(video => video.id !== videoId))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -256,12 +262,15 @@ export default function ListPropertyPage() {
       
       if (isEditing && editPropertyId) {
         const existingImageIds = existingImages.map(img => img.id)
+        const existingVideoIds = existingVideos.map(video => video.id)
         result = await updatePropertyWithImages(
           editPropertyId, 
           user.id, 
           propertyData, 
           formData.images,
-          existingImageIds
+          existingImageIds,
+          formData.videos,
+          existingVideoIds
         )
       } else {
         result = await createPropertyWithImages(propertyData, formData.images, formData.videos)
@@ -651,6 +660,41 @@ export default function ListPropertyPage() {
                         >
                           <X className="h-4 w-4" />
                         </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Existing Videos (when editing) */}
+              {isEditing && existingVideos.length > 0 && (
+                <div className="space-y-4">
+                  <Label>Current Property Videos</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {existingVideos.map((video) => (
+                      <div key={video.id} className="relative">
+                        <div className="aspect-video bg-muted rounded-lg overflow-hidden relative">
+                          <video 
+                            src={video.video_url}
+                            className="w-full h-full object-cover"
+                            controls={false}
+                          />
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <Play className="w-8 h-8 text-white" />
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={() => removeExistingVideo(video.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {video.title}
+                        </p>
                       </div>
                     ))}
                   </div>

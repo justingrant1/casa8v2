@@ -325,6 +325,13 @@ export async function getPropertyForEdit(propertyId: string, landlordId: string)
           image_url,
           alt_text,
           order_index
+        ),
+        property_videos (
+          id,
+          video_url,
+          title,
+          order_index,
+          file_size
         )
       `)
       .eq('id', propertyId)
@@ -344,7 +351,9 @@ export async function updatePropertyWithImages(
   landlordId: string, 
   propertyData: Partial<CreatePropertyData>, 
   images: File[] = [],
-  existingImageIds: string[] = []
+  existingImageIds: string[] = [],
+  videos: File[] = [],
+  existingVideoIds: string[] = []
 ) {
   try {
     console.log('Updating property with data:', propertyData)
@@ -409,10 +418,52 @@ export async function updatePropertyWithImages(
       }
     }
 
+    // Handle video updates
+    let uploadedVideos = []
+    
+    // Delete videos that are no longer needed
+    const { data: currentVideos } = await supabase
+      .from('property_videos')
+      .select('id, video_url')
+      .eq('property_id', propertyId)
+
+    if (currentVideos) {
+      const videosToDelete = currentVideos.filter(video => !existingVideoIds.includes(video.id))
+      
+      for (const videoToDelete of videosToDelete) {
+        // Delete from storage
+        const videoPath = videoToDelete.video_url.split('/').pop()
+        if (videoPath) {
+          await supabase.storage
+            .from('property-videos')
+            .remove([`videos/${videoPath}`])
+        }
+        
+        // Delete from database
+        await supabase
+          .from('property_videos')
+          .delete()
+          .eq('id', videoToDelete.id)
+      }
+    }
+
+    // Upload new videos if any
+    if (videos.length > 0) {
+      console.log(`Uploading ${videos.length} new videos...`)
+      try {
+        const newVideos = await uploadPropertyVideos(propertyId, videos)
+        uploadedVideos = newVideos
+        console.log('New videos uploaded successfully:', uploadedVideos.length)
+      } catch (videoError) {
+        console.error('Error uploading new videos (continuing anyway):', videoError)
+      }
+    }
+
     return { 
       success: true, 
       property, 
-      images: uploadedImages
+      images: uploadedImages,
+      videos: uploadedVideos
     }
   } catch (error) {
     console.error('Error updating property:', error)
