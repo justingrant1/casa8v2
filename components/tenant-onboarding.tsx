@@ -141,8 +141,35 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSubmit = () => {
-    onComplete(formData)
+  const handleSubmit = async () => {
+    console.log('🔄 Submitting onboarding form with data:', formData)
+    
+    // Validate required fields
+    if (!formData.hasSection8) {
+      console.error('❌ Section 8 selection is required')
+      alert('Please select whether you have a Section 8 voucher')
+      return
+    }
+    
+    if (formData.hasSection8 === 'yes' && !formData.voucherBedrooms) {
+      console.error('❌ Voucher bedrooms selection is required')
+      alert('Please select your voucher bedroom size')
+      return
+    }
+    
+    if (!formData.preferredCity) {
+      console.error('❌ Preferred city is required')
+      alert('Please enter your preferred city')
+      return
+    }
+    
+    try {
+      console.log('✅ All validations passed, calling onComplete...')
+      await onComplete(formData)
+    } catch (error) {
+      console.error('❌ Error in onComplete:', error)
+      alert('There was an error saving your preferences. Please try again.')
+    }
   }
 
   return (

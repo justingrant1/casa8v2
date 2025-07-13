@@ -383,17 +383,33 @@ export default function HomePage() {
   }
 
   const handleOnboardingComplete = async (data: any) => {
+    console.log('🏠 Homepage: handleOnboardingComplete called with data:', data)
+    
     try {
+      console.log('🔄 Calling completeOnboarding from auth context...')
       const result = await completeOnboarding(data)
+      
+      console.log('📋 completeOnboarding result:', result)
+      
       if (!result.error) {
+        console.log('✅ Onboarding completed successfully!')
+        console.log('📋 Current profile before update:', profile)
+        
+        // Close the modal immediately
         setShowOnboarding(false)
-        // Redirect to homepage after successful onboarding
-        router.push('/')
+        
+        // Show success message
+        alert('Welcome to Casa8! Your preferences have been saved.')
+        
+        // Simple reload to ensure fresh state
+        window.location.reload()
       } else {
-        console.error('Error completing onboarding:', result.error)
+        console.error('❌ Error completing onboarding:', result.error)
+        alert(`Error saving preferences: ${result.error.message || result.error}`)
       }
     } catch (error) {
-      console.error('Error completing onboarding:', error)
+      console.error('❌ Exception in handleOnboardingComplete:', error)
+      alert(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
