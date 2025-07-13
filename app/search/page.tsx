@@ -21,6 +21,133 @@ import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles 
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 
+function SearchPropertyImage({ property }: { property: any }) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  
+  const images = property.images || [property.image]
+  const hasMultipleImages = images.length > 1
+
+  const nextImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (hasMultipleImages) {
+      if (isLeftSwipe) {
+        nextImage()
+      } else if (isRightSwipe) {
+        prevImage()
+      }
+    }
+  }
+
+  return (
+    <div 
+      className="relative h-56 touch-pan-y overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div 
+        className="flex w-full h-full transition-transform duration-300 ease-out"
+        style={{
+          transform: `translateX(${-currentImageIndex * (100 / images.length)}%)`,
+          width: `${images.length * 100}%`
+        }}
+      >
+        {images.map((image: string, index: number) => (
+          <div 
+            key={index} 
+            className="h-full flex-shrink-0"
+            style={{ width: `${100 / images.length}%` }}
+          >
+            <Image
+              src={image || "/placeholder.svg"}
+              alt={`${property.title} - Image ${index + 1}`}
+              width={400}
+              height={280}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ))}
+      </div>
+
+      {hasMultipleImages && (
+        <>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={prevImage}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="secondary"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 bg-black/50 hover:bg-black/70 text-white border-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={nextImage}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+            {images.map((_: any, index: number) => (
+              <button
+                key={index}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  index === currentImageIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setCurrentImageIndex(index)
+                }}
+              />
+            ))}
+          </div>
+
+          <Badge className="absolute bottom-4 left-4 bg-black/50 text-white font-medium px-2 py-1 text-xs">
+            {images.length} photos
+          </Badge>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -562,13 +689,7 @@ export default function SearchPage() {
                     className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-0 shadow-lg group bg-white"
                   >
                     <div className="relative overflow-hidden">
-                      <Image
-                        src={(property.images && property.images[0]) || property.image || "/placeholder.svg"}
-                        alt={property.title}
-                        width={400}
-                        height={280}
-                        className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <SearchPropertyImage property={property} />
                       <Button
                         size="icon"
                         variant="secondary"
