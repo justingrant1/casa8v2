@@ -89,13 +89,70 @@ export function SimpleMap({ properties, className = "" }: SimpleMapProps) {
 
       markers.push(marker)
 
+      const propertyImage = (property.images && property.images[0]) || property.image || "/placeholder.svg"
+      
       // @ts-ignore
       const infoWindow = new window.google.maps.InfoWindow({
-        content: `<div style="padding: 8px;">
-          <h3>${property.title}</h3>
-          <p>$${property.price.toLocaleString()}/mo</p>
-          <p style="font-size: 0.9em; color: #666;">${property.location || property.address}</p>
-        </div>`
+        content: `
+          <div style="width: 280px; font-family: system-ui, -apple-system, sans-serif;">
+            <div style="margin-bottom: 12px; border-radius: 8px; overflow: hidden;">
+              <img 
+                src="${propertyImage}" 
+                alt="${property.title}"
+                style="width: 100%; height: 140px; object-fit: cover; display: block;"
+              />
+            </div>
+            <div style="padding: 4px 0;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937; line-height: 1.3;">
+                ${property.title}
+              </h3>
+              <div style="margin-bottom: 12px;">
+                <span style="font-size: 20px; font-weight: 700; color: #059669;">
+                  $${property.price.toLocaleString()}
+                </span>
+                <span style="font-size: 14px; color: #6b7280; margin-left: 4px;">
+                  /month
+                </span>
+              </div>
+              <div style="display: flex; gap: 16px; margin-bottom: 12px; padding: 8px; background: #f9fafb; border-radius: 6px;">
+                <div style="display: flex; align-items: center; font-size: 14px;">
+                  <span style="font-weight: 600; margin-right: 4px;">${property.bedrooms}</span>
+                  <span style="color: #6b7280;">beds</span>
+                </div>
+                <div style="display: flex; align-items: center; font-size: 14px;">
+                  <span style="font-weight: 600; margin-right: 4px;">${property.bathrooms}</span>
+                  <span style="color: #6b7280;">baths</span>
+                </div>
+                <div style="display: flex; align-items: center; font-size: 14px;">
+                  <span style="font-weight: 600; margin-right: 4px;">${property.sqft}</span>
+                  <span style="color: #6b7280;">sqft</span>
+                </div>
+              </div>
+              <p style="margin: 0 0 12px 0; font-size: 13px; color: #6b7280; line-height: 1.4;">
+                📍 ${property.location || property.address}
+              </p>
+              <a 
+                href="/property/${property.id}"
+                style="
+                  display: block; 
+                  text-align: center; 
+                  background: #059669; 
+                  color: white; 
+                  padding: 8px 16px; 
+                  border-radius: 6px; 
+                  text-decoration: none; 
+                  font-weight: 500; 
+                  font-size: 14px;
+                  transition: background-color 0.2s;
+                "
+                onmouseover="this.style.background='#047857'"
+                onmouseout="this.style.background='#059669'"
+              >
+                View Details
+              </a>
+            </div>
+          </div>
+        `
       })
 
       marker.addListener('click', () => {
