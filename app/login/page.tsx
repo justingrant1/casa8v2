@@ -17,7 +17,7 @@ import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, signInWithGoogle, loading } = useAuth()
+  const { signIn, signInWithGoogle, loading, user } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -59,15 +59,10 @@ export default function LoginPage() {
     }))
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
-        </div>
-      </div>
-    )
+  // If user is already logged in, redirect to home
+  if (!loading && user) {
+    router.push("/")
+    return null
   }
 
   return (
