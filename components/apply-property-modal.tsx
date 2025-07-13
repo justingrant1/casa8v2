@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { sendApplicationEmail } from "@/lib/email"
+import { createApplication } from "@/lib/applications"
 import { useAuth } from "@/lib/auth"
 
 interface ApplyPropertyModalProps {
@@ -20,7 +20,8 @@ interface ApplyPropertyModalProps {
   onClose: () => void
   property: {
     title: string
-    id: number
+    id: string
+    landlord_id: string
   }
   landlord?: {
     name: string
@@ -53,7 +54,7 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!user || !landlord) {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "Please log in to submit applications.",
@@ -65,45 +66,45 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
     setIsLoading(true)
 
     try {
-      const result = await sendApplicationEmail({
-        landlord_name: landlord.name,
-        landlord_email: landlord.email,
+      const applicationData = {
+        property_id: property.id,
+        landlord_id: property.landlord_id,
         tenant_name: `${formData.firstName} ${formData.lastName}`,
         tenant_email: formData.email,
-        property_title: property.title,
-        move_in_date: formData.moveInDate,
-        monthly_income: formData.monthlyIncome,
-        employment_status: formData.employmentStatus,
-        has_section8: formData.hasSection8,
-        additional_notes: formData.message,
-      })
-
-      if (result.success) {
-        toast({
-          title: "Application Submitted!",
-          description: "Your rental application has been sent to the landlord.",
-        })
-        
-        // Reset form and close modal
-        setFormData({
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          moveInDate: "",
-          monthlyIncome: "",
-          employmentStatus: "",
-          hasSection8: false,
-          message: "",
-        })
-        onClose()
-      } else {
-        throw new Error('Failed to send application')
+        tenant_phone: formData.phone,
+        move_in_date: formData.moveInDate || undefined,
+        lease_length_months: 12, // Default to 12 months
+        monthly_income: formData.monthlyIncome ? parseFloat(formData.monthlyIncome) : undefined,
+        employment_status: formData.employmentStatus || undefined,
+        has_voucher: formData.hasSection8,
+        message: formData.message || undefined,
       }
-    } catch (error) {
+
+      await createApplication(applicationData)
+
+      toast({
+        title: "Application Submitted!",
+        description: "Your rental application has been submitted successfully. The landlord will be notified.",
+      })
+      
+      // Reset form and close modal
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        moveInDate: "",
+        monthlyIncome: "",
+        employmentStatus: "",
+        hasSection8: false,
+        message: "",
+      })
+      onClose()
+    } catch (error: any) {
+      console.error('Application submission error:', error)
       toast({
         title: "Failed to submit application",
-        description: "Please try again or contact the landlord directly.",
+        description: error.message || "Please try again or contact the landlord directly.",
         variant: "destructive",
       })
     } finally {

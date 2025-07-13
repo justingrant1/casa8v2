@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, Mail, Phone, Copy, Send, Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { sendContactEmail } from "@/lib/email"
+import { contactLandlord } from "@/lib/messaging"
 import { useAuth } from "@/lib/auth"
 
 interface ContactLandlordModalProps {
@@ -21,6 +21,7 @@ interface ContactLandlordModalProps {
     name: string
     phone: string
     email: string
+    id: string
   }
   property: {
     title: string
@@ -48,7 +49,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!user || !profile) {
+    if (!user) {
       toast({
         title: "Authentication required",
         description: "Please log in to send messages.",
@@ -60,28 +61,25 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     setIsLoading(true)
 
     try {
-      const result = await sendContactEmail({
-        landlord_name: landlord.name,
-        landlord_email: landlord.email,
-        tenant_name: profile.full_name || user.email || 'Anonymous',
-        tenant_email: user.email || '',
-        property_title: property.title,
+      await contactLandlord({
+        property_id: property.id,
+        landlord_id: landlord.id,
+        subject: emailForm.subject,
         message: emailForm.message,
+        tenant_name: profile?.full_name || user.email || 'Anonymous',
+        tenant_email: user.email || '',
       })
 
-      if (result.success) {
-        toast({
-          title: "Message sent!",
-          description: "Your message has been sent to the landlord.",
-        })
-        onClose()
-      } else {
-        throw new Error('Failed to send email')
-      }
-    } catch (error) {
+      toast({
+        title: "Message sent!",
+        description: "Your message has been sent to the landlord.",
+      })
+      onClose()
+    } catch (error: any) {
+      console.error('Contact landlord error:', error)
       toast({
         title: "Failed to send message",
-        description: "Please try again or contact the landlord directly.",
+        description: error.message || "Please try again or contact the landlord directly.",
         variant: "destructive",
       })
     } finally {

@@ -181,7 +181,7 @@ export default function SearchPage() {
 
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
-    landlord?: { name: string; phone: string; email: string }
+    landlord?: { name: string; phone: string; email: string; id: string }
     property?: { title: string; id: string }
   }>({
     isOpen: false,
@@ -336,6 +336,7 @@ export default function SearchPage() {
         name: property.landlord,
         phone: "(555) 123-4567",
         email: `${property.landlord.toLowerCase().replace(" ", ".")}@email.com`,
+        id: property.landlord_id || property.id,
       },
       property: {
         title: property.title,
