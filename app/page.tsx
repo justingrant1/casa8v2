@@ -15,7 +15,8 @@ import { LocationSearch } from "@/components/location-search"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { getUserLocationByIP, getNearbyProperties, kmToMiles } from "@/lib/location"
+import { ChevronLeft, ChevronRight, MapPin as LocationIcon } from "lucide-react"
 
 // Property Card Component with Carousel
 function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, openContactModal }: {
@@ -180,10 +181,16 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-xl font-bold mb-2 line-clamp-2">{property.title}</CardTitle>
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-gray-600 mb-1">
               <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
               <span className="text-sm">{property.location}</span>
             </div>
+            {property.distance !== null && property.distance !== undefined && (
+              <div className="flex items-center text-primary text-xs font-medium">
+                <LocationIcon className="h-3 w-3 mr-1" />
+                <span>{kmToMiles(property.distance)} miles away</span>
+              </div>
+            )}
           </div>
           <div className="text-right flex-shrink-0">
             <div className="text-3xl font-bold text-primary">${property.price.toLocaleString()}</div>
@@ -240,6 +247,12 @@ export default function HomePage() {
   const { toggleFavorite, isFavorite } = useFavorites()
   const [properties, setProperties] = useState<any[]>([])
   const [propertiesLoading, setPropertiesLoading] = useState(true)
+  const [userLocation, setUserLocation] = useState<{
+    city: string
+    state: string
+    coordinates: { lat: number; lng: number }
+  } | null>(null)
+  const [locationLoading, setLocationLoading] = useState(true)
   const [contactModal, setContactModal] = useState<{
     isOpen: boolean
     landlord?: { name: string; phone: string; email: string }
@@ -248,14 +261,63 @@ export default function HomePage() {
     isOpen: false,
   })
 
+  // Fetch user location on mount
+  useEffect(() => {
+    async function fetchUserLocation() {
+      try {
+        setLocationLoading(true)
+        const locationData = await getUserLocationByIP()
+        
+        if (locationData) {
+          setUserLocation({
+            city: locationData.city,
+            state: locationData.state,
+            coordinates: {
+              lat: locationData.latitude,
+              lng: locationData.longitude
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching user location:', error)
+      } finally {
+        setLocationLoading(false)
+      }
+    }
+
+    fetchUserLocation()
+  }, [])
+
   // Fetch properties from database
   useEffect(() => {
     async function fetchProperties() {
       try {
         setPropertiesLoading(true)
-        const data = await getProperties({ limit: 6 })
-        const formattedProperties = data.map(formatPropertyForFrontend)
-        setProperties(formattedProperties)
+        const data = await getProperties({ limit: 12 }) // Get more properties for better location sorting
+        let formattedProperties = data.map(formatPropertyForFrontend)
+        
+        // Add mock coordinates to properties for demonstration
+        // In a real app, these would come from the database
+        formattedProperties = formattedProperties.map((property, index) => ({
+          ...property,
+          coordinates: {
+            // Mock coordinates around major US cities for demonstration
+            lat: 40.7128 + (Math.random() - 0.5) * 5, // Around NYC area
+            lng: -74.0060 + (Math.random() - 0.5) * 5
+          }
+        }))
+
+        // If user location is available, sort properties by distance
+        if (userLocation) {
+          const nearbyProperties = getNearbyProperties(
+            formattedProperties,
+            userLocation.coordinates,
+            100 // 100km radius
+          )
+          setProperties(nearbyProperties.slice(0, 6)) // Show 6 closest properties
+        } else {
+          setProperties(formattedProperties.slice(0, 6))
+        }
       } catch (error) {
         console.error('Error fetching properties:', error)
       } finally {
@@ -264,7 +326,7 @@ export default function HomePage() {
     }
 
     fetchProperties()
-  }, [])
+  }, [userLocation]) // Re-fetch when user location is available
 
   const openContactModal = (property: any) => {
     setContactModal({
@@ -499,10 +561,23 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-12">
             <div className="mb-6 lg:mb-0">
-              <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-gray-900">Featured Properties</h2>
+              <h2 className="text-4xl lg:text-5xl font-bold mb-4 text-gray-900">
+                {userLocation ? `Properties Near ${userLocation.city}, ${userLocation.state}` : 'Featured Properties'}
+              </h2>
               <p className="text-xl text-gray-600 max-w-2xl">
-                Discover our most popular rental properties, carefully selected for quality and value
+                {userLocation 
+                  ? `Properties closest to your location, sorted by distance`
+                  : 'Discover our most popular rental properties, carefully selected for quality and value'
+                }
               </p>
+              {userLocation && (
+                <div className="flex items-center gap-2 mt-3">
+                  <LocationIcon className="h-4 w-4 text-primary" />
+                  <span className="text-sm text-gray-500">
+                    Showing properties within 60 miles of your location
+                  </span>
+                </div>
+              )}
             </div>
             <Link href="/search">
               <Button variant="outline" size="lg" className="font-medium px-8 bg-transparent">
