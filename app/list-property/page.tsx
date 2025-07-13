@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Upload, X, ArrowLeft, Star } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Upload, X, ArrowLeft, Star, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
@@ -31,6 +32,8 @@ export default function ListPropertyPage() {
   const [editPropertyId, setEditPropertyId] = useState<string | null>(null)
   const [existingImages, setExistingImages] = useState<any[]>([])
   const [addressData, setAddressData] = useState<AddressData | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isProcessingImages, setIsProcessingImages] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -173,6 +176,26 @@ export default function ListPropertyPage() {
   const handleFileUpload = (type: "images" | "videos", files: FileList | null) => {
     if (files) {
       const fileArray = Array.from(files)
+      const newCount = formData[type].length + fileArray.length
+      
+      // Start processing simulation for bulk uploads (10+ images)
+      if (type === "images" && newCount >= 10) {
+        setIsProcessingImages(true)
+        setUploadProgress(0)
+        
+        // Simulate processing progress
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            if (prev >= 100) {
+              clearInterval(progressInterval)
+              setIsProcessingImages(false)
+              return 100
+            }
+            return prev + (100 / (newCount * 0.5)) // Slower for more images
+          })
+        }, 100)
+      }
+      
       setFormData((prev) => ({
         ...prev,
         [type]: [...prev[type], ...fileArray],
@@ -696,10 +719,32 @@ export default function ListPropertyPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">New Images ({formData.images.length})</p>
-                      {formData.images.length >= 10 && (
-                        <Badge variant="secondary">Bulk Upload</Badge>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {formData.images.length >= 10 && (
+                          <Badge variant="secondary">Bulk Upload</Badge>
+                        )}
+                        {isProcessingImages && (
+                          <Badge variant="outline" className="text-xs">
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Processing...
+                          </Badge>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Upload Progress Bar */}
+                    {isProcessingImages && formData.images.length >= 10 && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Processing {formData.images.length} images...</span>
+                          <span>{Math.round(uploadProgress)}%</span>
+                        </div>
+                        <Progress value={uploadProgress} className="w-full" />
+                        <p className="text-xs text-muted-foreground">
+                          Please wait while we prepare your images for upload
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {formData.images.map((file, index) => {
                         const imageUrl = URL.createObjectURL(file)
