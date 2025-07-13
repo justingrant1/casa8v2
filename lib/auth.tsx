@@ -280,65 +280,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const completeOnboarding = async (data: any) => {
-    try {
-      console.log('🔄 Auth: completeOnboarding called with data:', data)
-      
-      if (!user) {
-        console.error('❌ Auth: No user logged in')
-        return { error: new Error('No user logged in') }
+  const completeOnboarding = (data: any): Promise<{ error: Error | null }> => {
+    return new Promise(async (resolve) => {
+      try {
+        console.log('🔄 Auth: completeOnboarding called with data:', data)
+        
+        if (!user) {
+          console.error('❌ Auth: No user logged in')
+          return resolve({ error: new Error('No user logged in') })
+        }
+
+        console.log('👤 Auth: Current user ID:', user.id)
+
+        const updates = {
+          has_section8: data.hasSection8 === 'yes',
+          voucher_bedrooms: data.voucherBedrooms || null,
+          preferred_city: data.preferredCity || null,
+          onboarding_completed: true
+        }
+
+        console.log('📝 Auth: Preparing to update profile with:', updates)
+
+        const { data: result, error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', user.id)
+          .select() // Return the updated row for verification
+
+        console.log('📋 Auth: Supabase update result:', { result, error })
+
+        if (error) {
+          console.error('❌ Auth: Database update error:', error)
+          console.error('❌ Auth: Error details:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          })
+          return resolve({ error: new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ''}`) })
+        }
+
+        if (!result || result.length === 0) {
+          console.error('❌ Auth: No rows were updated. This might indicate the user profile does not exist.')
+          return resolve({ error: new Error('Profile update failed: No rows affected. Please contact support.') })
+        }
+
+        console.log('✅ Auth: Profile updated successfully:', result[0])
+
+        // Update local profile state
+        setProfile(prev => prev ? { ...prev, ...updates } : null)
+        
+        console.log('✅ Auth: Local profile state updated')
+        
+        resolve({ error: null })
+      } catch (error) {
+        console.error('❌ Auth: Exception in completeOnboarding:', error)
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Unknown error during profile update'
+        resolve({ error: new Error(`Unexpected error: ${errorMessage}`) })
       }
-
-      console.log('👤 Auth: Current user ID:', user.id)
-
-      const updates = {
-        has_section8: data.hasSection8 === 'yes',
-        voucher_bedrooms: data.voucherBedrooms || null,
-        preferred_city: data.preferredCity || null,
-        onboarding_completed: true
-      }
-
-      console.log('📝 Auth: Preparing to update profile with:', updates)
-
-      const { data: result, error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
-        .select() // Return the updated row for verification
-
-      console.log('📋 Auth: Supabase update result:', { result, error })
-
-      if (error) {
-        console.error('❌ Auth: Database update error:', error)
-        console.error('❌ Auth: Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
-        return { error: new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ''}`) }
-      }
-
-      if (!result || result.length === 0) {
-        console.error('❌ Auth: No rows were updated. This might indicate the user profile does not exist.')
-        return { error: new Error('Profile update failed: No rows affected. Please contact support.') }
-      }
-
-      console.log('✅ Auth: Profile updated successfully:', result[0])
-
-      // Update local profile state
-      setProfile(prev => prev ? { ...prev, ...updates } : null)
-      
-      console.log('✅ Auth: Local profile state updated')
-      
-      return { error: null }
-    } catch (error) {
-      console.error('❌ Auth: Exception in completeOnboarding:', error)
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Unknown error during profile update'
-      return { error: new Error(`Unexpected error: ${errorMessage}`) }
-    }
+    })
   }
 
   const value: AuthContextType = {
