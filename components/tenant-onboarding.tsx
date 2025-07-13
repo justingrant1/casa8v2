@@ -165,10 +165,35 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
     
     try {
       console.log('✅ All validations passed, calling onComplete...')
+      
+      // Disable form to prevent multiple submissions
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
+      if (submitButton) {
+        submitButton.disabled = true
+        submitButton.textContent = 'Saving...'
+      }
+      
       await onComplete(formData)
+      
+      // Success is handled by parent component
     } catch (error) {
       console.error('❌ Error in onComplete:', error)
-      alert('There was an error saving your preferences. Please try again.')
+      
+      // Re-enable form
+      const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = 'Get Started'
+      }
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+        ? error 
+        : 'Unknown error occurred'
+      
+      alert(`Error saving preferences: ${errorMessage}\n\nPlease check the browser console for more details and try again.`)
     }
   }
 
@@ -269,7 +294,7 @@ export function TenantOnboarding({ isOpen, onComplete, onSkip }: TenantOnboardin
               </div>
             </div>
 
-            <Button onClick={handleSubmit} className="w-full mt-6">
+            <Button onClick={handleSubmit} className="w-full mt-6" type="submit">
               Get Started
             </Button>
           </CardContent>
