@@ -305,13 +305,29 @@ export default function LandlordDashboard() {
     try {
       await deleteProperty(propertyId.toString(), user.id)
       
-      // Remove from local state
-      setLandlordProperties(prev => prev.filter(p => p.id !== propertyId))
+      // Remove from local state with proper refresh
+      setLandlordProperties(prev => {
+        const updated = prev.filter(p => p.id !== propertyId)
+        console.log('🔄 Updated properties after deletion:', updated)
+        return updated
+      })
+      
+      // Also update property statuses
+      setPropertyStatuses(prev => {
+        const { [propertyId]: removed, ...rest } = prev
+        return rest
+      })
       
       toast({
         title: "Property deleted",
         description: "Property has been successfully removed from your listings"
       })
+
+      // Force a re-render by briefly setting loading state
+      setTimeout(() => {
+        setLoading(false)
+      }, 100)
+      
     } catch (error) {
       console.error('Error deleting property:', error)
       toast({
@@ -324,19 +340,24 @@ export default function LandlordDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header - Mobile Optimized */}
       <header className="border-b bg-white">
-        <div className="container mx-auto px-6 py-6">
+        <div className="container mx-auto px-4 py-4 md:px-6 md:py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">C8</span>
+                <span className="text-primary-foreground font-bold text-sm">C8</span>
               </div>
-              <span className="text-xl font-bold">Casa8</span>
+              <span className="text-lg md:text-xl font-bold">Casa8</span>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 md:space-x-4">
               <Link href="/">
-                <Button variant="outline">Back to Home</Button>
+                <Button variant="outline" size="sm" className="hidden md:inline-flex">
+                  Back to Home
+                </Button>
+                <Button variant="outline" size="sm" className="md:hidden">
+                  Home
+                </Button>
               </Link>
             </div>
           </div>
@@ -356,57 +377,87 @@ export default function LandlordDashboard() {
           </TabsList>
 
           <TabsContent value="properties" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">My Properties</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-xl md:text-2xl font-bold">My Properties</h2>
               <Link href="/list-property">
-                <Button className="w-full bg-black hover:bg-gray-800 text-white">
+                <Button className="w-full md:w-auto bg-black hover:bg-gray-800 text-white">
                   <Plus className="h-4 w-4 mr-2" />
                   Add New Property
                 </Button>
               </Link>
             </div>
 
-            {/* Properties Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left py-4 px-6 font-medium text-gray-600">Title</th>
-                    <th className="text-left py-4 px-6 font-medium text-gray-600">Address</th>
-                    <th className="text-left py-4 px-6 font-medium text-gray-600">Price</th>
-                    <th className="text-left py-4 px-6 font-medium text-gray-600">Status</th>
-                    <th className="text-left py-4 px-6 font-medium text-gray-600">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                        Loading your properties...
-                      </td>
-                    </tr>
-                  ) : landlordProperties.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No properties listed yet. <Link href="/list-property" className="text-primary hover:underline">Add your first property</Link>
-                      </td>
-                    </tr>
-                  ) : (
-                    landlordProperties.map((property) => (
-                      <tr key={property.id} className="border-b hover:bg-gray-50">
-                        <td className="py-4 px-6">
-                          <span className="font-medium text-gray-900">{property.title}</span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="text-gray-600">
-                            {property.address}, {property.city}, {property.state}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="text-gray-900">${property.price}/month</span>
-                        </td>
-                        <td className="py-4 px-6">
+            {/* Loading State */}
+            {loading && (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading your properties...</p>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && landlordProperties.length === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                  <Plus className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No properties listed yet</h3>
+                <p className="text-muted-foreground mb-4">Start by adding your first property to the platform</p>
+                <Link href="/list-property">
+                  <Button className="bg-primary hover:bg-primary/90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Your First Property
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {/* Properties Grid - Mobile Optimized */}
+            {!loading && landlordProperties.length > 0 && (
+              <div className="space-y-4">
+                {landlordProperties.map((property) => (
+                  <Card key={property.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 md:p-6">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        {/* Property Info */}
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-col md:flex-row md:items-start md:justify-between">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold text-lg md:text-xl text-gray-900 line-clamp-1">
+                                {property.title}
+                              </h3>
+                              <p className="text-sm md:text-base text-gray-600 line-clamp-2">
+                                {property.address}, {property.city}, {property.state}
+                              </p>
+                            </div>
+                            <div className="mt-2 md:mt-0 md:ml-4">
+                              <p className="text-xl md:text-2xl font-bold text-gray-900">
+                                ${property.price}
+                                <span className="text-sm md:text-base font-normal text-gray-500">/month</span>
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Mobile Status */}
+                          <div className="flex items-center justify-between md:hidden">
+                            <span className="text-sm font-medium text-gray-700">Status:</span>
+                            <Select
+                              value={propertyStatuses[property.id]}
+                              onValueChange={(value) => handleStatusChange(property.id, value)}
+                            >
+                              <SelectTrigger className="w-24 h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {/* Desktop Status & Actions */}
+                        <div className="hidden md:flex md:items-center md:space-x-4">
                           <Select
                             value={propertyStatuses[property.id]}
                             onValueChange={(value) => handleStatusChange(property.id, value)}
@@ -419,13 +470,12 @@ export default function LandlordDashboard() {
                               <SelectItem value="inactive">Inactive</SelectItem>
                             </SelectContent>
                           </Select>
-                        </td>
-                        <td className="py-4 px-6">
+
                           <div className="flex items-center space-x-2">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-gray-600 hover:text-gray-900"
+                              className="h-9 w-9 text-gray-600 hover:text-gray-900"
                               onClick={() => handleEdit(property.id)}
                             >
                               <Edit className="h-4 w-4" />
@@ -435,7 +485,7 @@ export default function LandlordDashboard() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -459,13 +509,54 @@ export default function LandlordDashboard() {
                               </AlertDialogContent>
                             </AlertDialog>
                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+
+                        {/* Mobile Actions */}
+                        <div className="flex items-center justify-end space-x-2 md:hidden">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(property.id)}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="max-w-[90vw] md:max-w-md">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Property</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{property.title}"? This action cannot be undone and will remove all associated images and data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="flex-col md:flex-row gap-2">
+                                <AlertDialogCancel className="w-full md:w-auto">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(property.id)}
+                                  className="w-full md:w-auto bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete Property
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="applications" className="space-y-6">

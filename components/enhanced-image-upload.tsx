@@ -211,6 +211,8 @@ export function EnhancedImageUpload({
   }
 
   const moveImage = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return
+    
     const newImages = [...images]
     const [movedImage] = newImages.splice(fromIndex, 1)
     newImages.splice(toIndex, 0, movedImage)
@@ -226,6 +228,11 @@ export function EnhancedImageUpload({
         onMainImageChange(mainImageIndex + 1)
       }
     }
+
+    toast({
+      title: "Image reordered",
+      description: `Moved image to position ${toIndex + 1}`,
+    })
   }
 
   const setMainImage = (index: number) => {
