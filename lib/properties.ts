@@ -251,6 +251,8 @@ export function formatPropertyForFrontend(property: PropertyWithDetails) {
     zip_code: property.zip_code,
     amenities: property.amenities || [],
     landlord_id: property.landlord_id,
+    latitude: property.latitude,
+    longitude: property.longitude,
     created_at: property.created_at,
     updated_at: property.updated_at
   }

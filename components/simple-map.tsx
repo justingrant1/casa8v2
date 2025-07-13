@@ -67,19 +67,34 @@ export function SimpleMap({ properties, className = "" }: SimpleMapProps) {
     // @ts-ignore
     if (!map || !window.google || !properties.length) return
 
+    // Clear existing markers
+    const markers: any[] = []
+
     properties.forEach(property => {
+      // Check if property has valid coordinates
+      const lat = property.latitude || property.coordinates?.lat
+      const lng = property.longitude || property.coordinates?.lng
+      
+      if (!lat || !lng) {
+        console.warn(`Property ${property.title} missing coordinates`)
+        return
+      }
+
       // @ts-ignore
       const marker = new window.google.maps.Marker({
-        position: property.coordinates,
+        position: { lat: parseFloat(lat), lng: parseFloat(lng) },
         map,
         title: property.title,
       })
+
+      markers.push(marker)
 
       // @ts-ignore
       const infoWindow = new window.google.maps.InfoWindow({
         content: `<div style="padding: 8px;">
           <h3>${property.title}</h3>
           <p>$${property.price.toLocaleString()}/mo</p>
+          <p style="font-size: 0.9em; color: #666;">${property.location || property.address}</p>
         </div>`
       })
 
@@ -87,6 +102,19 @@ export function SimpleMap({ properties, className = "" }: SimpleMapProps) {
         infoWindow.open(map, marker)
       })
     })
+
+    // Fit map bounds to show all markers
+    if (markers.length > 0) {
+      // @ts-ignore
+      const bounds = new window.google.maps.LatLngBounds()
+      markers.forEach(marker => bounds.extend(marker.getPosition()))
+      map.fitBounds(bounds)
+      
+      // Don't zoom in too much for single properties
+      if (markers.length === 1) {
+        map.setZoom(15)
+      }
+    }
   }, [map, properties])
 
   if (error) {

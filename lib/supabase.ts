@@ -87,6 +87,8 @@ export type Database = {
           amenities: string[] | null
           available: boolean
           landlord_id: string
+          latitude: string | null
+          longitude: string | null
           created_at: string
           updated_at: string
         }
@@ -106,6 +108,8 @@ export type Database = {
           amenities?: string[] | null
           available?: boolean
           landlord_id: string
+          latitude?: string | null
+          longitude?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -125,6 +129,8 @@ export type Database = {
           amenities?: string[] | null
           available?: boolean
           landlord_id?: string
+          latitude?: string | null
+          longitude?: string | null
           created_at?: string
           updated_at?: string
         }
