@@ -14,6 +14,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>
+  completeOnboarding: (data: any) => Promise<{ error: Error | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -264,6 +265,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const completeOnboarding = async (data: any) => {
+    try {
+      if (!user) {
+        return { error: new Error('No user logged in') }
+      }
+
+      const updates = {
+        has_section8: data.hasSection8 === 'yes',
+        voucher_bedrooms: data.voucherBedrooms || null,
+        preferred_city: data.preferredCity || null,
+        onboarding_completed: true
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+
+      if (error) {
+        return { error }
+      }
+
+      // Update local profile state
+      setProfile(prev => prev ? { ...prev, ...updates } : null)
+      
+      return { error: null }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
   const value: AuthContextType = {
     user,
     profile,
@@ -272,7 +304,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signInWithGoogle,
     signOut,
-    updateProfile
+    updateProfile,
+    completeOnboarding
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

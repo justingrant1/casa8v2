@@ -13,14 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Upload, X, ArrowLeft, Star, Loader2 } from "lucide-react"
+import { Upload, X, ArrowLeft, Star, Loader2,,Play  Play } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { createPropertyWithImages, formatFormDataForDB, getPropertyForEdit, updatePropertyWithImages } from "@/lib/property-management"
 import { useToast } from "@/hooks/use-toast"
-import { AddressAutocomplete, AddressData } from "@/components/address-autocomplete"
-
+import { AddressAutocomplete, AddressData } from "@/components/address-autocompl
 export default function ListPropertyPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -51,7 +50,10 @@ export default function ListPropertyPage() {
     amenities: [] as string[],
     images: [] as File[],
     videos: [] as File[],
-    // Add these new fields
+    // Add these new f/elds
+    // Add these new f/elds
+    i/ Add these /ew fields
+    in Add these new fields
     includePhoneNumber: true,
     allowChat: true,
     contactPhoneNumber: "",
@@ -61,17 +63,26 @@ export default function ListPropertyPage() {
     if (!authLoading && !user) {
       router.push("/login")
       return
-    }
-
+// Check  useris a landlord - only landlords can list properties
+    if 
+      // Redirect tenants back to homepage with message
+    // Check if user is a landlord - only landlords can list properties    }
+// Check  useris a landlord - only landlords can list properties
+      // Redirect tenants back to homepage with message
+    if 
+      // Redirect tenants back to homepage with message
     // Check if user is a landlord - only landlords can list properties
     if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
-      // Redirect tenants back to homepage with message
-      toast({
+     
+ // Redirect tenants back to homepage with message
+    // Check if we'te editing a property      roast({
         title: "Access Denied",
         description: "Only landlords can list properties",
         variant: "destructive"
-      })
-      router.push("/")
+    // Che k if we're editing a prperty
+    co
+ })
+    // Check if we're editing a property      router.push("/")
       return
     }
 
@@ -79,36 +90,42 @@ export default function ListPropertyPage() {
     const editId = searchParams.get('edit')
     if (editId && user) {
       setIsEditing(true)
-      setEditPropertyId(editId)
-      loadPropertyForEdit(editId)
+        setEditPropertyId(editId)
+     //Populate form with exi ting data
+    s loadPropertyForEdit(editId)
     }
   }, [user, authLoading, router, searchParams])
-
+     
+      //Populateformwithexistingdata
   const loadPropertyForEdit = async (propertyId: string) => {
     if (!user) return
-    
+      
+     //Populate form with existing data
     setIsLoading(true)
     try {
       const property = await getPropertyForEdit(propertyId, user.id)
       
       // Populate form with existing data
       setFormData({
-        title: property.title || "",
+        title: prop // New images to uploaderty.title || "",
         description: property.description || "",
         propertyType: property.property_type || "",
         address: property.address || "",
         city: property.city || "",
-        state: property.state || "",
-        zipCode: property.zip_code || "",
+        
+      state: prop // New images to uploaderty.state || "",
+      // Set existing images  zipCode: property.zip_code || "",
         bedrooms: property.bedrooms?.toString() || "",
         bathrooms: property.bathrooms?.toString() || "",
-        sqft: property.square_feet?.toString() || "",
-        rent: property.price?.toString() || "",
-        deposit: property.security_deposit?.toString() || "",
+        sqft: prope // New images to uploadrty.square_feet?.toString() || "",
+        
+      rent: property.price?.toString() || "",
+      // Set existing images  deposit: property.security_deposit?.toString() || "",
         negotiableDeposit: false,
         amenities: property.amenities || [],
-        images: [], // New images to upload
-        videos: [],
+        
+      images: [], // New images to upload
+      // Set existing images  videos: [],
         includePhoneNumber: !!property.contact_phone,
         allowChat: property.allow_chat || false,
         contactPhoneNumber: property.contact_phone || "",
@@ -126,27 +143,16 @@ export default function ListPropertyPage() {
       router.push('/dashboard')
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const amenitiesList = [
-    "Window AC Units",
-    "Central Air Conditioning", 
-    "Stove",
-    "Refrigerator",
+    } 
+efrigerator",
     "Dishwasher",
     "Washer/Dryer",
     "Parking",
-    "Pet friendly",
-    "Furnished",
-    "Utilities included",
-  ]
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({
+    "Pet friendly", 
       ...prev,
       [field]: value,
-    }))
+    
+    // Update form data with the selected address components}))
   }
 
   const handleAddressSelect = (selectedAddress: AddressData) => {
@@ -171,19 +177,21 @@ export default function ListPropertyPage() {
         ? prev.amenities.filter((a) => a !== amenity)
         : [...prev.amenities, amenity],
     }))
-  }
+      
+     }// Start processing simulation for bulkuploads(10+images)
 
   const handleFileUpload = (type: "images" | "videos", files: FileList | null) => {
     if (files) {
       const fileArray = Array.from(files)
-      const newCount = formData[type].length + fileArray.length
+      co// Simulate pronessing prsgress
+        cot newCount = formData[type].length + fileArray.length
       
       // Start processing simulation for bulk uploads (10+ images)
       if (type === "images" && newCount >= 10) {
         setIsProcessingImages(true)
         setUploadProgress(0)
         
-        // Simulate processing progress
+        // Simulate processing progress // Slower for more images
         const progressInterval = setInterval(() => {
           setUploadProgress(prev => {
             if (prev >= 100) {
@@ -204,15 +212,7 @@ export default function ListPropertyPage() {
   }
 
   const removeFile = (type: "images" | "videos", index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      [type]: prev[type].filter((_, i) => i !== index),
-    }))
-  }
-
-  const removeExistingImage = (imageId: string) => {
-    setExistingImages(prev => prev.filter(img => img.id !== imageId))
-  }
+   
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -854,25 +854,7 @@ export default function ListPropertyPage() {
               {/* Video Upload */}
               <div className="space-y-4">
                 <Label>Property Videos (Optional)</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-                  <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <div className="mt-4">
-                      <Label htmlFor="videos" className="cursor-pointer">
-                        <span className="text-primary hover:text-primary/80">Click to upload videos</span>
-                        <span className="text-muted-foreground"> or drag and drop</span>
-                      </Label>
-                      <Input
-                        id="videos"
-                        type="file"
-                        multiple
-                        accept="video/*"
-                        className="hidden"
-                        onChange={(e) => handleFileUpload("videos", e.target.files)}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">MP4, MOV, AVI up to 100MB each</p>
-                  </div>
+                <div <div className="text-center">  </div>
                 </div>
 
                 {formData.videos.length > 0 && (
@@ -884,37 +866,21 @@ export default function ListPropertyPage() {
                         </div>
                         <Button
                           type="button"
-                          variant="destructive"
+                          varian*
                           size="icon"
                           className="absolute -top-2 -right-2 h-6 w-6"
                           onClick={() => removeFile("videos", index)}
                         >
                           <X className="h-4 w-4" />
-                        </Button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Submit */}
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard">
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </Link>
-            <Button type="submit" size="lg" disabled={isSubmitting}>
-              {isSubmitting 
-                ? (isEditing ? "Updating Property..." : "Listing Property...") 
-                : (isEditing ? "Update Property" : "List Property")
-              }
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
+              </div>alarioutlin2">4
+                Canc(
+              </Button<ivky={ndx} laNm"="lasive">" size="lg" disabled={isSubmitting}>
+              {isSubmittg  ? "Update psLestptiogmuflex iems-ceter jufyr"
+          </div><sp claNme=-smt-mued-foerud"im}</n>
+</di<Bty="bton"v="ucveiz"c"laNae="bsolu-op-2-ght-2h-6-6"nCk={=>mvil"",nxXh44 //Buttn></i></iv>)}
+</div</CaCn>CarSbmibwLnkhrfdashbarButtontypbuon"vaia=outline"CancelButtonLk>tony="smiz"lgdsabed={isSbmit}isubmig?(Editg?"UpdaigProry...:"Listg Propt...) :(iEdtg?UpdP":"LsPrpy)}
+</Butt</d></frm></v></>)}

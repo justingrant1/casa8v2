@@ -44,6 +44,10 @@ export type Database = {
           role: 'tenant' | 'landlord'
           phone: string | null
           bio: string | null
+          has_section8: boolean | null
+          voucher_bedrooms: string | null
+          preferred_city: string | null
+          onboarding_completed: boolean
           created_at: string
           updated_at: string
         }
@@ -55,6 +59,10 @@ export type Database = {
           role: 'tenant' | 'landlord'
           phone?: string | null
           bio?: string | null
+          has_section8?: boolean | null
+          voucher_bedrooms?: string | null
+          preferred_city?: string | null
+          onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -66,6 +74,10 @@ export type Database = {
           role?: 'tenant' | 'landlord'
           phone?: string | null
           bio?: string | null
+          has_section8?: boolean | null
+          voucher_bedrooms?: string | null
+          preferred_city?: string | null
+          onboarding_completed?: boolean
           created_at?: string
           updated_at?: string
         }

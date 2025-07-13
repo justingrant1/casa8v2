@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageCircle, Mail, Phone, Copy, Send } from "lucide-react"
+import { MessageCircle, Mail, Phone, Copy, Send, Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { sendContactEmail } from "@/lib/email"
+import { useAuth } from "@/lib/auth"
 
 interface ContactLandlordModalProps {
   isOpen: boolean
@@ -27,7 +29,9 @@ interface ContactLandlordModalProps {
 }
 
 export function ContactLandlordModal({ isOpen, onClose, landlord, property }: ContactLandlordModalProps) {
+  const { user, profile } = useAuth()
   const [activeTab, setActiveTab] = useState("phone")
+  const [isLoading, setIsLoading] = useState(false)
   const [emailForm, setEmailForm] = useState({
     subject: `Inquiry about ${property.title}`,
     message: `Hi ${landlord.name},\n\nI'm interested in your property "${property.title}" and would like to know more details. Could we schedule a viewing?\n\nThank you!`,
@@ -41,15 +45,48 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     })
   }
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle email submission
-    console.log("Email sent:", emailForm)
-    toast({
-      title: "Message sent!",
-      description: "Your message has been sent to the landlord.",
-    })
-    onClose()
+    
+    if (!user || !profile) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to send messages.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const result = await sendContactEmail({
+        landlord_name: landlord.name,
+        landlord_email: landlord.email,
+        tenant_name: profile.full_name || user.email || 'Anonymous',
+        tenant_email: user.email || '',
+        property_title: property.title,
+        message: emailForm.message,
+      })
+
+      if (result.success) {
+        toast({
+          title: "Message sent!",
+          description: "Your message has been sent to the landlord.",
+        })
+        onClose()
+      } else {
+        throw new Error('Failed to send email')
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to send message",
+        description: "Please try again or contact the landlord directly.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const startChat = () => {
@@ -130,9 +167,13 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                <Send className="h-4 w-4 mr-2" />
-                Send Email
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {isLoading ? 'Sending...' : 'Send Email'}
               </Button>
             </form>
           </TabsContent>

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
 import { UserDropdown } from "@/components/user-dropdown"
+import { TenantOnboarding } from "@/components/tenant-onboarding"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
@@ -244,7 +245,7 @@ function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, open
 
 export default function HomePage() {
   const router = useRouter()
-  const { user, profile, signOut, loading } = useAuth()
+  const { user, profile, signOut, loading, completeOnboarding } = useAuth()
   const { toggleFavorite, isFavorite } = useFavorites()
   const [properties, setProperties] = useState<any[]>([])
   const [propertiesLoading, setPropertiesLoading] = useState(true)
@@ -261,6 +262,7 @@ export default function HomePage() {
   }>({
     isOpen: false,
   })
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   // Fetch user location on mount
   useEffect(() => {
@@ -288,6 +290,13 @@ export default function HomePage() {
 
     fetchUserLocation()
   }, [])
+
+  // Check if tenant needs onboarding
+  useEffect(() => {
+    if (user && profile && profile.role === 'tenant' && !profile.onboarding_completed) {
+      setShowOnboarding(true)
+    }
+  }, [user, profile])
 
   // Fetch properties from database
   useEffect(() => {
@@ -370,6 +379,13 @@ export default function HomePage() {
     }
     
     toggleFavorite(propertyId)
+  }
+
+  const handleOnboardingComplete = async (data: any) => {
+    const result = await completeOnboarding(data)
+    if (!result.error) {
+      setShowOnboarding(false)
+    }
   }
 
   // No need to show loading screen on homepage - content can render immediately
@@ -488,12 +504,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-8 text-gray-900 leading-tight">
-              Find Your Perfect
-              <span className="text-primary block">Home</span>
+              Welcome Home with
+              <span className="text-primary block">Section 8</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Discover amazing properties for rent. Whether you're a tenant looking for your next home or a landlord
-              wanting to list your property, we've got you covered.
+              Discover thousands of affordable rentals that accept Section 8 vouchers. Whether you're a tenant seeking your next home or a landlord ready to list, join our community of over 10,000 verified listings today.
             </p>
 
             {/* Enhanced Search Bar with backdrop */}
@@ -722,6 +737,14 @@ export default function HomePage() {
           onClose={closeContactModal}
           landlord={contactModal.landlord}
           property={contactModal.property}
+        />
+      )}
+
+      {showOnboarding && (
+        <TenantOnboarding
+          isOpen={showOnboarding}
+          onComplete={handleOnboardingComplete}
+          onSkip={() => setShowOnboarding(false)}
         />
       )}
     </div>

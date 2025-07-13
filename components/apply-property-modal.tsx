@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { sendApplicationEmail } from "@/lib/email"
+import { useAuth } from "@/lib/auth"
 
 interface ApplyPropertyModalProps {
   isOpen: boolean
@@ -17,14 +22,24 @@ interface ApplyPropertyModalProps {
     title: string
     id: number
   }
+  landlord?: {
+    name: string
+    email: string
+  }
 }
 
-export function ApplyPropertyModal({ isOpen, onClose, property }: ApplyPropertyModalProps) {
+export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: ApplyPropertyModalProps) {
+  const { user, profile } = useAuth()
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
+    moveInDate: "",
+    monthlyIncome: "",
+    employmentStatus: "",
+    hasSection8: false,
     message: "",
   })
 
@@ -35,25 +50,65 @@ export function ApplyPropertyModal({ isOpen, onClose, property }: ApplyPropertyM
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!user || !landlord) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to submit applications.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    // Handle form submission
-    console.log("Application submitted:", formData)
-    toast({
-      title: "Application Submitted!",
-      description: "Your rental application has been sent to the landlord.",
-    })
+    setIsLoading(true)
 
-    // Reset form and close modal
-    setFormData({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      message: "",
-    })
-    onClose()
+    try {
+      const result = await sendApplicationEmail({
+        landlord_name: landlord.name,
+        landlord_email: landlord.email,
+        tenant_name: `${formData.firstName} ${formData.lastName}`,
+        tenant_email: formData.email,
+        property_title: property.title,
+        move_in_date: formData.moveInDate,
+        monthly_income: formData.monthlyIncome,
+        employment_status: formData.employmentStatus,
+        has_section8: formData.hasSection8,
+        additional_notes: formData.message,
+      })
+
+      if (result.success) {
+        toast({
+          title: "Application Submitted!",
+          description: "Your rental application has been sent to the landlord.",
+        })
+        
+        // Reset form and close modal
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          moveInDate: "",
+          monthlyIncome: "",
+          employmentStatus: "",
+          hasSection8: false,
+          message: "",
+        })
+        onClose()
+      } else {
+        throw new Error('Failed to send application')
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to submit application",
+        description: "Please try again or contact the landlord directly.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -118,6 +173,57 @@ export function ApplyPropertyModal({ isOpen, onClose, property }: ApplyPropertyM
             />
           </div>
 
+          {/* Move-in Date */}
+          <div className="space-y-2">
+            <Label htmlFor="moveInDate">Preferred Move-in Date</Label>
+            <Input
+              id="moveInDate"
+              type="date"
+              value={formData.moveInDate}
+              onChange={(e) => handleInputChange("moveInDate", e.target.value)}
+            />
+          </div>
+
+          {/* Monthly Income */}
+          <div className="space-y-2">
+            <Label htmlFor="monthlyIncome">Monthly Income</Label>
+            <Input
+              id="monthlyIncome"
+              type="number"
+              placeholder="Enter monthly income"
+              value={formData.monthlyIncome}
+              onChange={(e) => handleInputChange("monthlyIncome", e.target.value)}
+            />
+          </div>
+
+          {/* Employment Status */}
+          <div className="space-y-2">
+            <Label htmlFor="employmentStatus">Employment Status</Label>
+            <Select value={formData.employmentStatus} onValueChange={(value) => handleInputChange("employmentStatus", value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select employment status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employed">Employed</SelectItem>
+                <SelectItem value="self-employed">Self-Employed</SelectItem>
+                <SelectItem value="unemployed">Unemployed</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
+                <SelectItem value="student">Student</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Section 8 */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="hasSection8"
+              checked={formData.hasSection8}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSection8: checked as boolean }))}
+            />
+            <Label htmlFor="hasSection8">I have Section 8 voucher</Label>
+          </div>
+
           {/* Additional Message */}
           <div className="space-y-2">
             <Label htmlFor="message">Additional Message (Optional)</Label>
@@ -134,9 +240,12 @@ export function ApplyPropertyModal({ isOpen, onClose, property }: ApplyPropertyM
           <Button
             type="submit"
             className="w-full bg-black hover:bg-gray-800 text-white"
-            disabled={!formData.firstName || !formData.lastName || !formData.email || !formData.phone}
+            disabled={isLoading || !formData.firstName || !formData.lastName || !formData.email || !formData.phone}
           >
-            Submit Application
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : null}
+            {isLoading ? 'Submitting...' : 'Submit Application'}
           </Button>
         </form>
       </DialogContent>
