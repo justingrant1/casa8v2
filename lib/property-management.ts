@@ -76,7 +76,60 @@ export async function uploadPropertyImages(propertyId: string, images: File[]) {
   return uploadedImages
 }
 
-export async function createPropertyWithImages(propertyData: CreatePropertyData, images: File[] = []) {
+export async function uploadPropertyVideos(propertyId: string, videos: File[]) {
+  const uploadedVideos = []
+  
+  for (let i = 0; i < videos.length; i++) {
+    const video = videos[i]
+    const fileExt = video.name.split('.').pop()
+    const fileName = `${propertyId}_video_${i}_${Date.now()}.${fileExt}`
+    const filePath = `videos/${fileName}`
+
+    try {
+      // Upload video to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('property-videos')
+        .upload(filePath, video)
+
+      if (uploadError) {
+        console.error('Error uploading video:', uploadError)
+        continue
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('property-videos')
+        .getPublicUrl(filePath)
+
+      // Save video record to database
+      const { data: videoRecord, error: dbError } = await supabase
+        .from('property_videos')
+        .insert({
+          property_id: propertyId,
+          video_url: urlData.publicUrl,
+          title: video.name,
+          order_index: i,
+          file_size: video.size
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('Error saving video record:', dbError)
+        continue
+      }
+
+      uploadedVideos.push(videoRecord)
+    } catch (error) {
+      console.error('Error processing video:', error)
+      continue
+    }
+  }
+
+  return uploadedVideos
+}
+
+export async function createPropertyWithImages(propertyData: CreatePropertyData, images: File[] = [], videos: File[] = []) {
   try {
     console.log('Creating property with data:', propertyData)
     
@@ -112,10 +165,24 @@ export async function createPropertyWithImages(propertyData: CreatePropertyData,
       }
     }
 
+    // Upload videos if any
+    let uploadedVideos = []
+    if (videos.length > 0) {
+      console.log(`Uploading ${videos.length} videos...`)
+      try {
+        uploadedVideos = await uploadPropertyVideos(property.id, videos)
+        console.log('Videos uploaded successfully:', uploadedVideos.length)
+      } catch (videoError) {
+        console.error('Error uploading videos (continuing anyway):', videoError)
+        // Continue without videos rather than failing completely
+      }
+    }
+
     return { 
       success: true, 
       property, 
-      images: uploadedImages
+      images: uploadedImages,
+      videos: uploadedVideos
     }
   } catch (error) {
     console.error('Error creating property:', error)

@@ -264,7 +264,7 @@ export default function ListPropertyPage() {
           existingImageIds
         )
       } else {
-        result = await createPropertyWithImages(propertyData, formData.images)
+        result = await createPropertyWithImages(propertyData, formData.images, formData.videos)
       }
       
       if (result.success) {
