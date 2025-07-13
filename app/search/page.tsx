@@ -563,7 +563,7 @@ export default function SearchPage() {
                   >
                     <div className="relative overflow-hidden">
                       <Image
-                        src={property.image || "/placeholder.svg"}
+                        src={(property.images && property.images[0]) || property.image || "/placeholder.svg"}
                         alt={property.title}
                         width={400}
                         height={280}
@@ -573,18 +573,26 @@ export default function SearchPage() {
                         size="icon"
                         variant="secondary"
                         className="absolute top-4 right-4 h-10 w-10 bg-white/90 hover:bg-white shadow-lg"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (!user) {
+                            router.push('/login')
+                            return
+                          }
+                          toggleFavorite(property.id)
+                        }}
                       >
-                        <Heart className="h-5 w-5" />
+                        <Heart 
+                          className={`h-5 w-5 transition-colors ${
+                            isFavorite(property.id) 
+                              ? 'fill-red-500 text-red-500' 
+                              : 'text-gray-600'
+                          }`} 
+                        />
                       </Button>
                       <Badge className="absolute top-4 left-4 bg-white/95 text-gray-900 font-medium px-3 py-1">
                         {property.type}
                       </Badge>
-
-                      {!property.available && (
-                        <Badge variant="destructive" className="absolute bottom-4 left-4 font-medium px-3 py-1">
-                          Not Available
-                        </Badge>
-                      )}
                     </div>
 
                     <CardHeader className="pb-4">
