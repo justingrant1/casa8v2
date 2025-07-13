@@ -156,7 +156,7 @@ export default function SearchPage() {
   
   const [searchQuery, setSearchQuery] = useState("")
   const [locationQuery, setLocationQuery] = useState("")
-  const [priceRange, setPriceRange] = useState([1000, 5000])
+  const [priceRange, setPriceRange] = useState([500, 5000])
   const [bedrooms, setBedrooms] = useState("any")
   const [bathrooms, setBathrooms] = useState("any")
   const [propertyType, setPropertyType] = useState("any")
