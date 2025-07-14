@@ -50,13 +50,10 @@ export async function sendContactEmail(data: {
     })
 
     const response = await emailjs.send(SERVICE_ID, 'template_contact', {
-      to_name: data.landlord_name,
-      to_email: data.landlord_email,
-      from_name: data.tenant_name,
-      from_email: data.tenant_email,
-      property_title: data.property_title,
+      title: data.property_title,
+      name: data.tenant_name,
+      email: data.tenant_email,
       message: data.message,
-      reply_to: data.tenant_email,
     })
     
     console.log('EmailJS response:', response)
@@ -142,14 +139,17 @@ async function sendFallbackEmail(data: {
         console.log(`Trying fallback with template: ${templateId}`)
         
         const response = await emailjs.send(SERVICE_ID, templateId, {
+          title: data.property_title,
+          name: data.tenant_name,
+          email: data.tenant_email,
+          message: data.message,
+          // Additional fallback variables
           to_name: data.landlord_name,
           to_email: data.landlord_email,
           from_name: data.tenant_name,
           from_email: data.tenant_email,
           property_title: data.property_title,
-          message: data.message,
           reply_to: data.tenant_email,
-          // Additional common template variables
           user_name: data.tenant_name,
           user_email: data.tenant_email,
           subject: `Casa8 Inquiry: ${data.property_title}`,

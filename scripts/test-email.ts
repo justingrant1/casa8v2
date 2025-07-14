@@ -35,13 +35,10 @@ const testEmailJS = async () => {
   console.log('\n📧 Testing email send...')
   
   const testEmailData = {
-    to_name: 'Test Recipient',
-    to_email: 'jgrant@testacapital.com', // Replace with your email
-    from_name: 'Test Sender',
-    from_email: 'test@example.com',
-    property_title: 'Test Property',
+    title: 'Test Property',
+    name: 'Test Sender',
+    email: 'test@example.com',
     message: 'This is a test message from EmailJS diagnostic script.',
-    reply_to: 'test@example.com'
   }
   
   try {
@@ -108,14 +105,17 @@ const testTemplateVariations = async () => {
   ]
   
   const testData = {
+    title: 'Test Property',
+    name: 'Test Sender',
+    email: 'test@example.com',
+    message: 'Template variation test',
+    // Additional fallback variables
     to_name: 'Test Recipient',
     to_email: 'jgrant@testacapital.com',
     from_name: 'Test Sender',
     from_email: 'test@example.com',
     property_title: 'Test Property',
-    message: 'Template variation test',
     reply_to: 'test@example.com',
-    // Additional common variables
     user_name: 'Test Sender',
     user_email: 'test@example.com',
     subject: 'Test Subject',
