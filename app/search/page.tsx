@@ -236,6 +236,7 @@ export default function SearchPage() {
   useEffect(() => {
     async function fetchProperties() {
       try {
+        // Don't clear existing properties immediately, just show loading
         setPropertiesLoading(true)
         
         let data
@@ -302,12 +303,22 @@ export default function SearchPage() {
         setAllProperties(formattedProperties)
       } catch (error) {
         console.error('Error fetching properties:', error)
+        // Don't clear properties on error, keep existing ones
       } finally {
         setPropertiesLoading(false)
       }
     }
 
-    fetchProperties()
+    // Only fetch if we don't have properties yet or if search parameters actually changed
+    if (allProperties.length === 0 || 
+        searchQuery.trim() !== '' || 
+        locationQuery !== '' || 
+        bedrooms !== "any" || 
+        propertyType !== "any" || 
+        priceRange[0] !== 500 || 
+        priceRange[1] !== 5000) {
+      fetchProperties()
+    }
   }, [searchQuery, locationQuery, bedrooms, propertyType, priceRange])
 
   // Handle URL search parameters
