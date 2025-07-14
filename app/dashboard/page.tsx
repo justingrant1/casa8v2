@@ -725,7 +725,9 @@ export default function LandlordDashboard() {
                           <div className="flex-1">
                             <div className="font-semibold">{application.tenant_name}</div>
                             <div className="text-sm text-muted-foreground">
-                              Applied for: {application.properties?.title || 'Property'}
+                              Applied for: {application.properties?.address ? 
+                                `${application.properties.address}${(application.properties as any).city ? `, ${(application.properties as any).city}` : ''}${(application.properties as any).state ? ` ${(application.properties as any).state}` : ''}` : 
+                                application.properties?.title || 'Property'}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               Applied on: {new Date(application.created_at).toLocaleDateString()}

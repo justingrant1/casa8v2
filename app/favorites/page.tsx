@@ -297,9 +297,6 @@ export default function FavoritesPage() {
                         Contact
                       </Button>
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Property #{property.id}
-                    </p>
                   </div>
                 </div>
               </Card>

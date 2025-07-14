@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MessageCircle, Mail, Phone, Copy, Send, Loader2 } from "lucide-react"
+import { MessageCircle, Mail, Phone, Copy, Send, Loader2, LogIn } from "lucide-react"
 import { toast } from "sonner"
 import { contactLandlord } from "@/lib/messaging"
 import { useAuth } from "@/lib/auth"
+import Link from "next/link"
 
 interface ContactLandlordModalProps {
   isOpen: boolean
@@ -51,9 +52,6 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     e.preventDefault()
     
     if (!user) {
-      toast.error("Authentication required", {
-        description: "Please log in to send messages.",
-      })
       return
     }
 
@@ -132,110 +130,130 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
           <p className="text-center text-muted-foreground">Choose how you'd like to get in touch with</p>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${landlord.phone ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            <TabsTrigger value="chat" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </TabsTrigger>
-            {landlord.phone && (
-              <TabsTrigger value="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Phone
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          <TabsContent value="chat" className="space-y-4 mt-6">
-            <div className="text-center space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold">Start a Chat</h3>
-                <p className="text-muted-foreground">Send an instant message to {landlord.name}</p>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">You'll be connected with:</p>
-                <p className="font-medium">{landlord.name}</p>
-              </div>
-              <Button onClick={startChat} className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                )}
-                {isLoading ? 'Starting Chat...' : 'Start Chat'}
+        {!user ? (
+          // Show login prompt when user is not authenticated
+          <div className="text-center space-y-4 mt-6">
+            <div className="p-8 bg-muted rounded-lg">
+              <LogIn className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+              <p className="text-muted-foreground mb-4">
+                Please log in to submit applications, send messages, or contact landlords.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/login">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Log In
+                </Link>
               </Button>
             </div>
-          </TabsContent>
+          </div>
+        ) : (
+          // Show contact tabs when user is authenticated
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className={`grid w-full ${landlord.phone ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <TabsTrigger value="chat" className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email
+              </TabsTrigger>
+              {landlord.phone && (
+                <TabsTrigger value="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Phone
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="email" className="space-y-4 mt-6">
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Send Email</h3>
-                <p className="text-muted-foreground text-sm mb-4">Send a message to {landlord.email}</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input
-                  id="subject"
-                  value={emailForm.subject}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value }))}
-                  placeholder="Enter subject"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="message">Message</Label>
-                <Textarea
-                  id="message"
-                  value={emailForm.message}
-                  onChange={(e) => setEmailForm((prev) => ({ ...prev, message: e.target.value }))}
-                  placeholder="Enter your message"
-                  rows={6}
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
-                )}
-                {isLoading ? 'Sending...' : 'Send Email'}
-              </Button>
-            </form>
-          </TabsContent>
-
-          {landlord.phone && (
-            <TabsContent value="phone" className="space-y-4 mt-6">
-              <div>
-                <h3 className="text-lg font-semibold">Call</h3>
-                <p className="text-muted-foreground">Use the phone number below to call directly</p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Input value={landlord.phone} readOnly className="flex-1 bg-muted" />
-                <Button variant="outline" size="icon" onClick={() => copyToClipboard(landlord.phone)}>
-                  <Copy className="h-4 w-4" />
+            <TabsContent value="chat" className="space-y-4 mt-6">
+              <div className="text-center space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Start a Chat</h3>
+                  <p className="text-muted-foreground">Send an instant message to {landlord.name}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">You'll be connected with:</p>
+                  <p className="font-medium">{landlord.name}</p>
+                </div>
+                <Button onClick={startChat} className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {isLoading ? 'Starting Chat...' : 'Start Chat'}
                 </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Button asChild className="w-full">
-                  <a href={`tel:${landlord.phone}`}>
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call {landlord.name}
-                  </a>
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">Clicking will open your phone app</p>
               </div>
             </TabsContent>
-          )}
-        </Tabs>
+
+            <TabsContent value="email" className="space-y-4 mt-6">
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Send Email</h3>
+                  <p className="text-muted-foreground text-sm mb-4">Send a message to {landlord.name}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    value={emailForm.subject}
+                    onChange={(e) => setEmailForm((prev) => ({ ...prev, subject: e.target.value }))}
+                    placeholder="Enter subject"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={emailForm.message}
+                    onChange={(e) => setEmailForm((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Enter your message"
+                    rows={6}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  {isLoading ? 'Sending...' : 'Send Email'}
+                </Button>
+              </form>
+            </TabsContent>
+
+            {landlord.phone && (
+              <TabsContent value="phone" className="space-y-4 mt-6">
+                <div>
+                  <h3 className="text-lg font-semibold">Call</h3>
+                  <p className="text-muted-foreground">Use the phone number below to call directly</p>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Input value={landlord.phone} readOnly className="flex-1 bg-muted" />
+                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(landlord.phone)}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Button asChild className="w-full">
+                    <a href={`tel:${landlord.phone}`}>
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call {landlord.name}
+                    </a>
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">Clicking will open your phone app</p>
+                </div>
+              </TabsContent>
+            )}
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   )

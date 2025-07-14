@@ -50,7 +50,7 @@ export default function ListPropertyPage() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    propertyType: "",
+    propertyType: "house",
     address: "",
     city: "",
     state: "",
@@ -59,8 +59,8 @@ export default function ListPropertyPage() {
     bathrooms: "",
     sqft: "",
     rent: "",
-    deposit: "",
-    negotiableDeposit: false,
+    deposit: "1000",
+    negotiableDeposit: true,
     amenities: ["Central Air Conditioning", "Refrigerator", "Stove"] as string[],
     images: [] as File[],
     videos: [] as File[],
@@ -429,31 +429,6 @@ export default function ListPropertyPage() {
                 required={true}
               />
 
-              {/* Display parsed address components for verification */}
-              {(formData.address || formData.city || formData.state || formData.zipCode) && (
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Parsed Address:</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <span className="font-medium">Street:</span> {formData.address || "Not specified"}
-                    </div>
-                    <div>
-                      <span className="font-medium">City:</span> {formData.city || "Not specified"}
-                    </div>
-                    <div>
-                      <span className="font-medium">State:</span> {formData.state || "Not specified"}
-                    </div>
-                    <div>
-                      <span className="font-medium">ZIP:</span> {formData.zipCode || "Not specified"}
-                    </div>
-                    {addressData?.latitude && addressData?.longitude && (
-                      <div className="md:col-span-2">
-                        <span className="font-medium">Coordinates:</span> {addressData.latitude.toFixed(6)}, {addressData.longitude.toFixed(6)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
 

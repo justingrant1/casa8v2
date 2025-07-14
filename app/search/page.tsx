@@ -189,23 +189,12 @@ export default function SearchPage() {
   })
 
   const amenitiesList = [
-    "Gym",
-    "Pool",
-    "Parking",
+    "Central Air Conditioning",
+    "Window AC Units",
+    "Dishwasher",
     "Pet Friendly",
-    "Garage",
-    "Garden",
-    "Fireplace",
-    "Water View",
-    "Concierge",
-    "Laundry",
-    "Internet",
-    "Storage",
-    "City View",
-    "Balcony",
-    "Patio",
-    "High Ceilings",
-    "Exposed Brick",
+    "Refrigerator",
+    "Stove",
   ]
 
   // Fetch user location on mount
@@ -579,11 +568,6 @@ export default function SearchPage() {
                         <SelectItem value="any">Any type</SelectItem>
                         <SelectItem value="Apartment">Apartment</SelectItem>
                         <SelectItem value="House">House</SelectItem>
-                        <SelectItem value="Condo">Condo</SelectItem>
-                        <SelectItem value="Studio">Studio</SelectItem>
-                        <SelectItem value="Townhouse">Townhouse</SelectItem>
-                        <SelectItem value="Loft">Loft</SelectItem>
-                        <SelectItem value="Penthouse">Penthouse</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -849,11 +833,17 @@ export default function SearchPage() {
                     </CardContent>
 
                     <CardFooter className="flex gap-3 pt-0">
-                      <Link href={`/property/${property.id}`} className="flex-1">
-                        <Button variant="outline" className="w-full font-medium h-12 bg-transparent">
-                          View Details
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 font-medium h-12 bg-transparent"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          router.push(`/property/${property.id}`)
+                        }}
+                      >
+                        View Details
+                      </Button>
                       <Button
                         className="flex-1 font-medium h-12"
                         onClick={() => openContactModal(property)}
