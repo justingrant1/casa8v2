@@ -460,6 +460,13 @@ export default function SearchPage() {
             </div>
 
             <div className="flex items-center space-x-3">
+              {/* Mobile favorites button */}
+              <Link href="/favorites" className="md:hidden">
+                <Button variant="ghost" size="icon" className="font-medium">
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </Link>
+              
               {user ? (
                 <UserDropdown />
               ) : (
