@@ -19,7 +19,7 @@ interface ContactLandlordModalProps {
   onClose: () => void
   landlord: {
     name: string
-    phone: string
+    phone: string | null
     email: string
     id: string
   }
@@ -31,14 +31,16 @@ interface ContactLandlordModalProps {
 
 export function ContactLandlordModal({ isOpen, onClose, landlord, property }: ContactLandlordModalProps) {
   const { user, profile } = useAuth()
-  const [activeTab, setActiveTab] = useState("phone")
+  // Default to chat if phone not available, otherwise phone
+  const [activeTab, setActiveTab] = useState(landlord.phone ? "phone" : "chat")
   const [isLoading, setIsLoading] = useState(false)
   const [emailForm, setEmailForm] = useState({
     subject: `Inquiry about ${property.title}`,
     message: `Hi ${landlord.name},\n\nI'm interested in your property "${property.title}" and would like to know more details. Could we schedule a viewing?\n\nThank you!`,
   })
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string | null) => {
+    if (!text) return
     navigator.clipboard.writeText(text)
     toast({
       title: "Copied!",
@@ -142,7 +144,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${landlord.phone ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
               Chat
@@ -151,10 +153,12 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
               <Mail className="h-4 w-4" />
               Email
             </TabsTrigger>
-            <TabsTrigger value="phone" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Phone
-            </TabsTrigger>
+            {landlord.phone && (
+              <TabsTrigger value="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Phone
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="chat" className="space-y-4 mt-6">
@@ -217,29 +221,31 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
             </form>
           </TabsContent>
 
-          <TabsContent value="phone" className="space-y-4 mt-6">
-            <div>
-              <h3 className="text-lg font-semibold">Call</h3>
-              <p className="text-muted-foreground">Use the phone number below to call directly</p>
-            </div>
+          {landlord.phone && (
+            <TabsContent value="phone" className="space-y-4 mt-6">
+              <div>
+                <h3 className="text-lg font-semibold">Call</h3>
+                <p className="text-muted-foreground">Use the phone number below to call directly</p>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Input value={landlord.phone} readOnly className="flex-1 bg-muted" />
-              <Button variant="outline" size="icon" onClick={() => copyToClipboard(landlord.phone)}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
+              <div className="flex items-center space-x-2">
+                <Input value={landlord.phone} readOnly className="flex-1 bg-muted" />
+                <Button variant="outline" size="icon" onClick={() => copyToClipboard(landlord.phone)}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
 
-            <div className="space-y-2">
-              <Button asChild className="w-full">
-                <a href={`tel:${landlord.phone}`}>
-                  <Phone className="h-4 w-4 mr-2" />
-                  Call {landlord.name}
-                </a>
-              </Button>
-              <p className="text-xs text-muted-foreground text-center">Clicking will open your phone app</p>
-            </div>
-          </TabsContent>
+              <div className="space-y-2">
+                <Button asChild className="w-full">
+                  <a href={`tel:${landlord.phone}`}>
+                    <Phone className="h-4 w-4 mr-2" />
+                    Call {landlord.name}
+                  </a>
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">Clicking will open your phone app</p>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>

@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, User, Settings } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
+import { syncProfileToPropertyListings } from "@/lib/profile-sync"
 
 export default function ProfilePage() {
   const { user, profile, loading } = useAuth()
@@ -55,19 +57,60 @@ export default function ProfilePage() {
   }
 
   const handleSave = async () => {
+    if (!user) return
+    
     setIsSaving(true)
     try {
-      // Here you would typically update the user profile in your database
-      // For now, we'll just show a success message
+      // Combine first and last name
+      const fullName = `${profileData.firstName.trim()} ${profileData.lastName.trim()}`.trim()
+      
+      // Update the profile in the database
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName || null,
+          phone: profileData.phone.trim() || null,
+          bio: profileData.bio.trim() || null,
+          preferred_city: profileData.location.trim() || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      // If user is a landlord and has updated contact info, sync to properties if needed
+      if (user.user_metadata?.role === 'landlord') {
+        try {
+          const syncResult = await syncProfileToPropertyListings(user.id, {
+            full_name: fullName,
+            phone: profileData.phone.trim() || undefined
+          })
+          
+          console.log('Profile sync result:', syncResult)
+        } catch (syncError) {
+          console.error('Error syncing profile to properties:', syncError)
+          // Don't fail the whole save if sync fails
+        }
+      }
+
       toast({
         title: "Profile updated successfully",
         description: "Your profile information has been saved.",
       })
       setIsEditing(false)
-    } catch (error) {
+      
+      // Refresh the page to show updated data
+      window.location.reload()
+      
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
       toast({
         title: "Error updating profile",
-        description: "Failed to save your profile. Please try again.",
+        description: error.message || "Failed to save your profile. Please try again.",
         variant: "destructive"
       })
     } finally {

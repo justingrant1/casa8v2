@@ -12,6 +12,8 @@ export type PropertyWithDetails = Property & {
     alt_text: string | null
     order_index: number
   }>
+  contact_phone?: string | null
+  allow_chat?: boolean
 }
 
 export async function getProperties(options?: {

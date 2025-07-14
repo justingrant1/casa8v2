@@ -11,6 +11,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { ApplyPropertyModal } from "@/components/apply-property-modal"
+import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { getPropertyById } from "@/lib/properties"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
@@ -228,6 +229,7 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<any>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [applyModal, setApplyModal] = useState(false)
+  const [contactModal, setContactModal] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
 
@@ -256,7 +258,7 @@ export default function PropertyDetailPage() {
             landlord: {
               name: data.profiles?.full_name || "Property Owner",
               avatar: "/placeholder.svg",
-              phone: (data.profiles as any)?.phone || "Contact via email",
+              phone: data.contact_phone || null, // Use the property's contact_phone, not the profile's phone
               email: data.profiles?.email || "owner@example.com",
               rating: 4.5,
               properties: 5,
@@ -282,6 +284,8 @@ export default function PropertyDetailPage() {
 
   const openApplyModal = () => setApplyModal(true)
   const closeApplyModal = () => setApplyModal(false)
+  const openContactModal = () => setContactModal(true)
+  const closeContactModal = () => setContactModal(false)
 
   const handleToggleFavorite = () => {
     if (!user) {
@@ -547,9 +551,13 @@ export default function PropertyDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start bg-transparent">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start bg-transparent"
+                    onClick={openContactModal}
+                  >
                     <Phone className="w-4 h-4 mr-2" />
-                    {property.landlord.phone}
+                    Contact Landlord
                   </Button>
                 </div>
               </CardContent>
@@ -568,6 +576,22 @@ export default function PropertyDetailPage() {
           landlord_id: property.landlord_id,
         }}
         landlord={property.landlord}
+      />
+
+      {/* Contact Landlord Modal */}
+      <ContactLandlordModal
+        isOpen={contactModal}
+        onClose={closeContactModal}
+        property={{
+          title: property.title,
+          id: property.id,
+        }}
+        landlord={{
+          name: property.landlord.name,
+          phone: property.landlord.phone,
+          email: property.landlord.email,
+          id: property.landlord_id,
+        }}
       />
 
       {/* Footer */}
