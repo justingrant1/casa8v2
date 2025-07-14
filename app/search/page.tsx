@@ -157,7 +157,6 @@ export default function SearchPage() {
   
   const [searchQuery, setSearchQuery] = useState("")
   const [locationQuery, setLocationQuery] = useState("")
-  const [priceRange, setPriceRange] = useState([500, 5000])
   const [bedrooms, setBedrooms] = useState("any")
   const [bathrooms, setBathrooms] = useState("any")
   const [propertyType, setPropertyType] = useState("any")
@@ -269,13 +268,6 @@ export default function SearchPage() {
             filters.propertyType = propertyType
           }
           
-          if (priceRange[0] > 1000) {
-            filters.minPrice = priceRange[0]
-          }
-          
-          if (priceRange[1] < 5000) {
-            filters.maxPrice = priceRange[1]
-          }
           
           data = await getProperties(filters)
         }
@@ -309,17 +301,15 @@ export default function SearchPage() {
       }
     }
 
-    // Only fetch if we don't have properties yet or if search parameters actually changed
-    if (allProperties.length === 0 || 
-        searchQuery.trim() !== '' || 
-        locationQuery !== '' || 
-        bedrooms !== "any" || 
-        propertyType !== "any" || 
-        priceRange[0] !== 500 || 
-        priceRange[1] !== 5000) {
-      fetchProperties()
-    }
-  }, [searchQuery, locationQuery, bedrooms, propertyType, priceRange])
+        // Only fetch if we don't have properties yet or if search parameters actually changed
+        if (allProperties.length === 0 || 
+            searchQuery.trim() !== '' || 
+            locationQuery !== '' || 
+            bedrooms !== "any" || 
+            propertyType !== "any") {
+          fetchProperties()
+        }
+  }, [searchQuery, locationQuery, bedrooms, propertyType])
 
   // Handle URL search parameters
   useEffect(() => {
@@ -368,7 +358,6 @@ export default function SearchPage() {
   const clearAllFilters = () => {
     setSearchQuery("")
     setLocationQuery("")
-    setPriceRange([1000, 5000])
     setBedrooms("any")
     setBathrooms("any")
     setPropertyType("any")
@@ -383,8 +372,6 @@ export default function SearchPage() {
       property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.type.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesPrice = property.price >= priceRange[0] && property.price <= priceRange[1]
 
     const matchesBedrooms =
       bedrooms === "any" ||
@@ -402,7 +389,7 @@ export default function SearchPage() {
     const matchesAmenities =
       selectedAmenities.length === 0 || selectedAmenities.every((amenity) => property.amenities.includes(amenity))
 
-    return matchesSearch && matchesPrice && matchesBedrooms && matchesBathrooms && matchesType && matchesAmenities
+    return matchesSearch && matchesBedrooms && matchesBathrooms && matchesType && matchesAmenities
   })
 
   // Sort properties
@@ -425,8 +412,6 @@ export default function SearchPage() {
 
   const hasActiveFilters =
     searchQuery ||
-    priceRange[0] !== 1000 ||
-    priceRange[1] !== 5000 ||
     bedrooms !== "any" ||
     bathrooms !== "any" ||
     propertyType !== "any" ||
@@ -568,29 +553,6 @@ export default function SearchPage() {
                     </div>
                   </div>
 
-                  {/* Price Range */}
-                  <div className="space-y-4">
-                    <Label className="text-base font-semibold text-gray-900">Price Range</Label>
-                    <div className="px-3">
-                      <Slider
-                        value={priceRange}
-                        onValueChange={setPriceRange}
-                        max={8000}
-                        min={500}
-                        step={100}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="bg-gray-100 px-3 py-2 rounded-lg">
-                        <span className="font-semibold">${priceRange[0].toLocaleString()}</span>
-                      </div>
-                      <span className="text-gray-400">to</span>
-                      <div className="bg-gray-100 px-3 py-2 rounded-lg">
-                        <span className="font-semibold">${priceRange[1].toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
 
                   {/* Bedrooms & Bathrooms */}
                   <div className="grid grid-cols-2 gap-4">
