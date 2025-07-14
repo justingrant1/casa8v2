@@ -115,8 +115,7 @@ export default function LandlordDashboard() {
 
   const getSenderName = (message: any, userId: string) => {
     if (message.sender_id === userId) return 'You'
-    return message.sender?.user_metadata?.full_name || 
-           message.sender?.user_metadata?.name || 
+    return message.sender?.full_name || 
            message.sender?.email || 
            'Unknown User'
   }
@@ -126,8 +125,7 @@ export default function LandlordDashboard() {
     const senderName = getSenderName(lastMessage, user?.id || '')
     
     return senderName === 'You' 
-      ? (lastMessage.recipient?.user_metadata?.full_name || 
-         lastMessage.recipient?.user_metadata?.name || 
+      ? (lastMessage.recipient?.full_name || 
          lastMessage.recipient?.email || 'Unknown User')
       : senderName
   }
@@ -837,8 +835,7 @@ export default function LandlordDashboard() {
                           <div className="flex items-start space-x-4 flex-1">
                             <Avatar>
                               <AvatarFallback>
-                                {(lastMessage.sender?.user_metadata?.full_name || 
-                                  lastMessage.sender?.user_metadata?.name || 
+                                {(lastMessage.sender?.full_name || 
                                   lastMessage.sender?.email || 'U')
                                   .split(' ')
                                   .map((n: string) => n[0])
@@ -850,8 +847,7 @@ export default function LandlordDashboard() {
                               <div className="flex items-center space-x-2 mb-1">
                                 <div className="font-semibold truncate">
                                   {senderName === 'You' 
-                                    ? (lastMessage.recipient?.user_metadata?.full_name || 
-                                       lastMessage.recipient?.user_metadata?.name || 
+                                    ? (lastMessage.recipient?.full_name || 
                                        lastMessage.recipient?.email || 'Unknown User')
                                     : senderName
                                   }

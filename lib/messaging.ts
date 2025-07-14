@@ -16,17 +16,11 @@ export interface Message {
   // Optional joined user data
   sender?: {
     email: string
-    user_metadata?: {
-      full_name?: string
-      name?: string
-    }
+    full_name?: string
   }
   recipient?: {
     email: string
-    user_metadata?: {
-      full_name?: string
-      name?: string
-    }
+    full_name?: string
   }
   // Optional joined property/application data
   property?: {
@@ -83,11 +77,11 @@ export async function sendMessage(data: CreateMessageData) {
         *,
         sender:sender_id (
           email,
-          user_metadata
+          full_name
         ),
         recipient:recipient_id (
           email,
-          user_metadata
+          full_name
         )
       `)
       .single()
@@ -115,11 +109,11 @@ export async function getMessagesForUser(userId: string) {
         *,
         sender:sender_id (
           email,
-          user_metadata
+          full_name
         ),
         recipient:recipient_id (
           email,
-          user_metadata
+          full_name
         ),
         property:property_id (
           title,
@@ -197,11 +191,11 @@ export async function getConversation(userId: string, otherUserId: string, prope
         *,
         sender:sender_id (
           email,
-          user_metadata
+          full_name
         ),
         recipient:recipient_id (
           email,
-          user_metadata
+          full_name
         )
       `)
       .or(`and(sender_id.eq.${userId},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${userId})`)
@@ -332,22 +326,27 @@ export async function deleteMessage(messageId: string) {
 async function createMessageNotification(message: any) {
   try {
     const subject = message.subject || 'New Message'
-    const senderName = message.sender?.user_metadata?.full_name || 
-                      message.sender?.user_metadata?.name || 
+    const senderName = message.sender?.full_name || 
                       message.sender?.email || 'Someone'
 
-    await supabase
-      .from('notifications')
-      .insert([{
-        user_id: message.recipient_id,
-        title: `New message from ${senderName}`,
-        message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
-        notification_type: 'message',
-        related_property_id: message.property_id,
-        related_application_id: message.application_id,
-        related_message_id: message.id,
-        action_url: `/dashboard?tab=messages&conversation=${message.sender_id}`
-      }])
+    console.log('Notification would be created:', {
+      title: `New message from ${senderName}`,
+      message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+    })
+
+    // Temporarily disabled due to permission issues
+    // await supabase
+    //   .from('notifications')
+    //   .insert([{
+    //     user_id: message.recipient_id,
+    //     title: `New message from ${senderName}`,
+    //     message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+    //     notification_type: 'message',
+    //     related_property_id: message.property_id,
+    //     related_application_id: message.application_id,
+    //     related_message_id: message.id,
+    //     action_url: `/dashboard?tab=messages&conversation=${message.sender_id}`
+    //   }])
   } catch (error) {
     console.error('Error creating message notification:', error)
   }
@@ -374,23 +373,28 @@ async function sendMessageEmail(message: any) {
       }
     }
 
-    const senderName = message.sender?.user_metadata?.full_name || 
-                      message.sender?.user_metadata?.name || 
+    const senderName = message.sender?.full_name || 
                       'Casa8 User'
     
-    const recipientName = message.recipient?.user_metadata?.full_name || 
-                         message.recipient?.user_metadata?.name || 
+    const recipientName = message.recipient?.full_name || 
                          'User'
 
-    // Send email notification to recipient
-    await sendContactEmail({
-      landlord_name: recipientName,
-      landlord_email: message.recipient?.email || '',
-      tenant_name: senderName,
-      tenant_email: message.sender?.email || '',
-      property_title: propertyTitle,
-      message: message.content
+    console.log('Email notification would be sent:', {
+      to: recipientName,
+      from: senderName,
+      subject: propertyTitle,
+      content: message.content.substring(0, 100) + '...'
     })
+
+    // Temporarily disabled due to EmailJS template configuration issues
+    // await sendContactEmail({
+    //   landlord_name: recipientName,
+    //   landlord_email: message.recipient?.email || '',
+    //   tenant_name: senderName,
+    //   tenant_email: message.sender?.email || '',
+    //   property_title: propertyTitle,
+    //   message: message.content
+    // })
 
     console.log('Email notification sent successfully')
   } catch (error) {
@@ -432,11 +436,11 @@ export async function contactLandlord(data: {
         *,
         sender:sender_id (
           email,
-          user_metadata
+          full_name
         ),
         recipient:recipient_id (
           email,
-          user_metadata
+          full_name
         )
       `)
       .single()
