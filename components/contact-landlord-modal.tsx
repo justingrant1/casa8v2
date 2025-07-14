@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, Mail, Phone, Copy, Send, Loader2 } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { contactLandlord } from "@/lib/messaging"
 import { useAuth } from "@/lib/auth"
 
@@ -42,8 +42,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
   const copyToClipboard = (text: string | null) => {
     if (!text) return
     navigator.clipboard.writeText(text)
-    toast({
-      title: "Copied!",
+    toast.success("Copied!", {
       description: "Phone number copied to clipboard",
     })
   }
@@ -52,10 +51,8 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     e.preventDefault()
     
     if (!user) {
-      toast({
-        title: "Authentication required",
+      toast.error("Authentication required", {
         description: "Please log in to send messages.",
-        variant: "destructive",
       })
       return
     }
@@ -72,17 +69,14 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
         tenant_email: user.email || '',
       })
 
-      toast({
-        title: "Message sent!",
+      toast.success("Message sent!", {
         description: "Your message has been sent to the landlord.",
       })
       onClose()
     } catch (error: any) {
       console.error('Contact landlord error:', error)
-      toast({
-        title: "Failed to send message",
+      toast.error("Failed to send message", {
         description: error.message || "Please try again or contact the landlord directly.",
-        variant: "destructive",
       })
     } finally {
       setIsLoading(false)
@@ -91,10 +85,8 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
 
   const startChat = async () => {
     if (!user) {
-      toast({
-        title: "Authentication required",
+      toast.error("Authentication required", {
         description: "Please log in to start a chat.",
-        variant: "destructive",
       })
       return
     }
@@ -112,8 +104,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
         tenant_email: user.email || '',
       })
 
-      toast({
-        title: "Chat started!",
+      toast.success("Chat started!", {
         description: "Your initial message has been sent. You can continue the conversation in your messages.",
       })
       
@@ -125,10 +116,8 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
       onClose()
     } catch (error: any) {
       console.error('Start chat error:', error)
-      toast({
-        title: "Failed to start chat",
+      toast.error("Failed to start chat", {
         description: error.message || "Please try again or contact the landlord directly.",
-        variant: "destructive",
       })
     } finally {
       setIsLoading(false)

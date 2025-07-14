@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Navbar } from "@/components/navbar"
+import { ApplicationDetailsModal } from "@/components/application-details-modal"
 
 export default function LandlordDashboard() {
   const { user, loading: authLoading } = useAuth()
@@ -43,6 +44,8 @@ export default function LandlordDashboard() {
   const [showRealtimeChat, setShowRealtimeChat] = useState(false)
   const [activeChatThread, setActiveChatThread] = useState<MessageThread | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
   // Set up real-time subscriptions for messages
   useEffect(() => {
@@ -363,7 +366,7 @@ export default function LandlordDashboard() {
     }
   }
 
-  const handleApplicationAction = async (applicationId: string, status: 'approved' | 'rejected') => {
+  const handleApplicationAction = async (applicationId: string, status: 'approved' | 'rejected' | 'pending') => {
     if (!user) return
 
     try {
@@ -402,7 +405,7 @@ export default function LandlordDashboard() {
         property_id: thread.property_id,
         application_id: thread.application_id,
         subject: replySubject || `Re: ${thread.last_message.subject || 'Message'}`,
-        message_text: replyMessage,
+        content: replyMessage,
         message_type: 'general'
       })
 
@@ -742,11 +745,18 @@ export default function LandlordDashboard() {
                             {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                           </Badge>
                           <div className="flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedApplication(application)
+                                setIsDetailsModalOpen(true)
+                              }}
+                            >
                               <FileText className="w-4 h-4 mr-1" />
                               View Details
                             </Button>
-                            {application.status === "pending" && (
+                            {application.status === "pending" ? (
                               <>
                                 <Button 
                                   size="sm" 
@@ -763,6 +773,14 @@ export default function LandlordDashboard() {
                                   Reject
                                 </Button>
                               </>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="secondary"
+                                onClick={() => handleApplicationAction(application.id, 'pending')}
+                              >
+                                Change Status
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -862,7 +880,7 @@ export default function LandlordDashboard() {
 
                               {/* Last Message Preview */}
                               <div className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                <span className="font-medium">{senderName}:</span> {lastMessage.message_text}
+                                <span className="font-medium">{senderName}:</span> {lastMessage.content}
                               </div>
 
                               <div className="text-xs text-muted-foreground">
@@ -910,9 +928,9 @@ export default function LandlordDashboard() {
                                             {getSenderName(msg, user?.id || '')} • {formatTimeAgo(msg.created_at)}
                                           </div>
                                           {msg.subject && (
-                                            <div className="font-medium text-sm mb-1">{msg.subject}</div>
+                                          <div className="font-medium text-sm mb-1">{msg.subject}</div>
                                           )}
-                                          <div className="text-sm">{msg.message_text}</div>
+                                          <div className="text-sm">{msg.content}</div>
                                         </div>
                                       </div>
                                     ))}
@@ -1006,6 +1024,12 @@ export default function LandlordDashboard() {
           </div>
         </div>
       )}
+
+      <ApplicationDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        application={selectedApplication}
+      />
     </div>
   )
 }

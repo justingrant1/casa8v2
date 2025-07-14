@@ -8,7 +8,7 @@ export interface Message {
   sender_id: string
   recipient_id: string
   subject?: string
-  message_text: string
+  content: string
   message_type: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
   is_read: boolean
   created_at: string
@@ -44,7 +44,7 @@ export interface CreateMessageData {
   application_id?: string
   recipient_id: string
   subject?: string
-  message_text: string
+  content: string
   message_type?: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
 }
 
@@ -67,7 +67,11 @@ export async function sendMessage(data: CreateMessageData) {
     }
 
     const messageData = {
-      ...data,
+      property_id: data.property_id,
+      application_id: data.application_id,
+      recipient_id: data.recipient_id,
+      subject: data.subject,
+      content: data.content,
       sender_id: user.id,
       message_type: data.message_type || 'general'
     }
@@ -337,7 +341,7 @@ async function createMessageNotification(message: any) {
       .insert([{
         user_id: message.recipient_id,
         title: `New message from ${senderName}`,
-        message: `${subject}: ${message.message_text.substring(0, 100)}${message.message_text.length > 100 ? '...' : ''}`,
+        message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
         notification_type: 'message',
         related_property_id: message.property_id,
         related_application_id: message.application_id,
@@ -385,7 +389,7 @@ async function sendMessageEmail(message: any) {
       tenant_name: senderName,
       tenant_email: message.sender?.email || '',
       property_title: propertyTitle,
-      message: message.message_text
+      message: message.content
     })
 
     console.log('Email notification sent successfully')
@@ -406,15 +410,46 @@ export async function contactLandlord(data: {
   tenant_phone?: string
 }) {
   try {
-    const messageData: CreateMessageData = {
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      throw new Error('You must be logged in to send messages')
+    }
+
+    const messageData = {
       property_id: data.property_id,
       recipient_id: data.landlord_id,
       subject: data.subject,
-      message_text: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
+      content: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
+      sender_id: user.id,
       message_type: 'inquiry'
     }
 
-    return await sendMessage(messageData)
+    const { data: message, error } = await supabase
+      .from('messages')
+      .insert([messageData])
+      .select(`
+        *,
+        sender:sender_id (
+          email,
+          user_metadata
+        ),
+        recipient:recipient_id (
+          email,
+          user_metadata
+        )
+      `)
+      .single()
+
+    if (error) throw error
+
+    // Create notification for recipient
+    await createMessageNotification(message)
+
+    // Send email notification
+    await sendMessageEmail(message)
+
+    return message
   } catch (error) {
     console.error('Error contacting landlord:', error)
     throw error

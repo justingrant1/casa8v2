@@ -171,7 +171,7 @@ export async function getApplicationsForTenant(tenantId: string) {
 
 export async function updateApplicationStatus(
   applicationId: string, 
-  status: 'approved' | 'rejected',
+  status: 'approved' | 'rejected' | 'pending',
   message?: string
 ) {
   try {
