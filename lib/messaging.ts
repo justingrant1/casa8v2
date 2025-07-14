@@ -16,11 +16,17 @@ export interface Message {
   // Optional joined user data
   sender?: {
     email: string
-    full_name?: string
+    user_metadata?: {
+      full_name?: string
+      name?: string
+    }
   }
   recipient?: {
     email: string
-    full_name?: string
+    user_metadata?: {
+      full_name?: string
+      name?: string
+    }
   }
   // Optional joined property/application data
   property?: {
@@ -77,11 +83,11 @@ export async function sendMessage(data: CreateMessageData) {
         *,
         sender:sender_id (
           email,
-          full_name
+          user_metadata
         ),
         recipient:recipient_id (
           email,
-          full_name
+          user_metadata
         )
       `)
       .single()
@@ -109,11 +115,11 @@ export async function getMessagesForUser(userId: string) {
         *,
         sender:sender_id (
           email,
-          full_name
+          user_metadata
         ),
         recipient:recipient_id (
           email,
-          full_name
+          user_metadata
         ),
         property:property_id (
           title,
@@ -191,11 +197,11 @@ export async function getConversation(userId: string, otherUserId: string, prope
         *,
         sender:sender_id (
           email,
-          full_name
+          user_metadata
         ),
         recipient:recipient_id (
           email,
-          full_name
+          user_metadata
         )
       `)
       .or(`and(sender_id.eq.${userId},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${userId})`)
@@ -326,7 +332,9 @@ export async function deleteMessage(messageId: string) {
 async function createMessageNotification(message: any) {
   try {
     const subject = message.subject || 'New Message'
-    const senderName = message.sender?.full_name || message.sender?.email || 'Someone'
+    const senderName = message.sender?.user_metadata?.full_name || 
+                      message.sender?.user_metadata?.name || 
+                      message.sender?.email || 'Someone'
 
     await supabase
       .from('notifications')
@@ -366,9 +374,13 @@ async function sendMessageEmail(message: any) {
       }
     }
 
-    const senderName = message.sender?.full_name || 'Casa8 User'
+    const senderName = message.sender?.user_metadata?.full_name || 
+                      message.sender?.user_metadata?.name || 
+                      'Casa8 User'
     
-    const recipientName = message.recipient?.full_name || 'User'
+    const recipientName = message.recipient?.user_metadata?.full_name || 
+                         message.recipient?.user_metadata?.name || 
+                         'User'
 
     // Send email notification to recipient
     await sendContactEmail({
@@ -420,11 +432,11 @@ export async function contactLandlord(data: {
         *,
         sender:sender_id (
           email,
-          full_name
+          user_metadata
         ),
         recipient:recipient_id (
           email,
-          full_name
+          user_metadata
         )
       `)
       .single()

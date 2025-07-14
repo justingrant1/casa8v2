@@ -77,7 +77,7 @@ export default function LandlordDashboard() {
           if (message.recipient_id === user.id) {
             toast({
               title: "New Message",
-              description: `New message from ${message.sender?.full_name || 'a tenant'}`,
+              description: `New message from ${message.sender_profile?.full_name || 'a tenant'}`,
             })
           }
         },
@@ -115,7 +115,8 @@ export default function LandlordDashboard() {
 
   const getSenderName = (message: any, userId: string) => {
     if (message.sender_id === userId) return 'You'
-    return message.sender?.full_name || 
+    return message.sender?.user_metadata?.full_name || 
+           message.sender?.user_metadata?.name || 
            message.sender?.email || 
            'Unknown User'
   }
@@ -125,7 +126,8 @@ export default function LandlordDashboard() {
     const senderName = getSenderName(lastMessage, user?.id || '')
     
     return senderName === 'You' 
-      ? (lastMessage.recipient?.full_name || 
+      ? (lastMessage.recipient?.user_metadata?.full_name || 
+         lastMessage.recipient?.user_metadata?.name || 
          lastMessage.recipient?.email || 'Unknown User')
       : senderName
   }
@@ -835,7 +837,8 @@ export default function LandlordDashboard() {
                           <div className="flex items-start space-x-4 flex-1">
                             <Avatar>
                               <AvatarFallback>
-                                {(lastMessage.sender?.full_name || 
+                                {(lastMessage.sender?.user_metadata?.full_name || 
+                                  lastMessage.sender?.user_metadata?.name || 
                                   lastMessage.sender?.email || 'U')
                                   .split(' ')
                                   .map((n: string) => n[0])
@@ -847,7 +850,8 @@ export default function LandlordDashboard() {
                               <div className="flex items-center space-x-2 mb-1">
                                 <div className="font-semibold truncate">
                                   {senderName === 'You' 
-                                    ? (lastMessage.recipient?.full_name || 
+                                    ? (lastMessage.recipient?.user_metadata?.full_name || 
+                                       lastMessage.recipient?.user_metadata?.name || 
                                        lastMessage.recipient?.email || 'Unknown User')
                                     : senderName
                                   }
@@ -1029,77 +1033,3 @@ export default function LandlordDashboard() {
     </div>
   )
 }
-
-</final_file_content>
-
-IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.<environment_details>
-# VSCode Visible Files
-app/dashboard/page.tsx
-
-# VSCode Open Tabs
-app/layout.tsx
-lib/favorites-db.ts
-lib/favorites-context.tsx
-next.config.mjs
-app/forgot-password/page.tsx
-components/address-autocomplete.tsx
-app/login/page.tsx
-scripts/geocode-properties.ts
-GAMEPLAN.md
-components/video-upload.tsx
-app/settings/page.tsx
-components/user-dropdown.tsx
-DATABASE_MIGRATION.sql
-lib/supabase.ts
-package.json
-app/api/generate-listing/route.ts
-app/property/[id]/page.tsx
-lib/email.ts
-components/simple-map.tsx
-components/navbar.tsx
-app/list-property/page.tsx
-EMAILJS_SETUP.md
-lib/property-management.ts
-app/search/page.tsx
-DATABASE_SETUP.md
-scripts/test-applications.ts
-FIX_APPLICATIONS_GUIDE.md
-components/apply-property-modal.tsx
-components/location-search.tsx
-app/page.tsx
-components/application-details-modal.tsx
-lib/applications.ts
-components/contact-landlord-modal.tsx
-lib/messaging.ts
-app/dashboard/page.tsx
-lib/location.ts
-vercel.json
-../../../../AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
-README.md
-lib/profile-sync.ts
-app/profile/page.tsx
-app/favorites/page.tsx
-lib/properties.ts
-components/tenant-onboarding.tsx
-lib/auth.tsx
-app/terms/page.tsx
-app/privacy/page.tsx
-app/register/page.tsx
-DATABASE_COMMUNICATION_MIGRATION.sql
-DATABASE_REALTIME_MIGRATION.sql
-lib/realtime-messaging.ts
-components/realtime-chat.tsx
-DATABASE_VIDEO_MIGRATION.sql
-components/enhanced-image-upload.tsx
-cline_mcp_settings.json
-../../../../../../AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
-
-# Current Time
-7/14/2025, 12:45:09 PM (America/New_York, UTC-4:00)
-
-# Context Window Usage
-481,545 / 1,048.576K tokens used (46%)
-
-# Current Mode
-ACT MODE
-</environment_details>
