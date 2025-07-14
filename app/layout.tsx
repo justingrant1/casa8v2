@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ErrorBoundary onError={(error, errorInfo) => ErrorReporter.report(error, { errorInfo })}>
+        <ErrorBoundary>
           <AuthProvider>
             <LoadingProvider>
               <FavoritesProvider>
