@@ -335,8 +335,8 @@ export default function SearchPage() {
       isOpen: true,
       landlord: {
         name: property.landlord,
-        phone: "(555) 123-4567",
-        email: `${property.landlord.toLowerCase().replace(" ", ".")}@email.com`,
+        phone: property.landlord_phone || "Phone not available",
+        email: property.landlord_email || "Email not available",
         id: property.landlord_id || property.id,
       },
       property: {

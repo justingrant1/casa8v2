@@ -346,8 +346,8 @@ export default function HomePage() {
       landlord: {
         id: property.landlord_id || 'temp-id',
         name: property.landlord,
-        phone: "(555) 123-4567",
-        email: `${property.landlord.toLowerCase().replace(" ", ".")}@email.com`,
+        phone: property.landlord_phone || "Phone not available",
+        email: property.landlord_email || "Email not available",
       },
       property: {
         title: property.title,

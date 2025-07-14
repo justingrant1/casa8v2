@@ -5,6 +5,7 @@ export type PropertyWithDetails = Property & {
   profiles?: {
     full_name: string | null
     email: string
+    phone: string | null
   }
   property_images?: Array<{
     id: string
@@ -30,6 +31,11 @@ export async function getProperties(options?: {
       .from('properties')
       .select(`
         *,
+        profiles!landlord_id (
+          full_name,
+          email,
+          phone
+        ),
         property_images (
           id,
           image_url,
@@ -121,6 +127,11 @@ export async function searchProperties(searchTerm: string, options?: {
       .from('properties')
       .select(`
         *,
+        profiles!landlord_id (
+          full_name,
+          email,
+          phone
+        ),
         property_images (
           id,
           image_url,
@@ -245,6 +256,8 @@ export function formatPropertyForFrontend(property: PropertyWithDetails) {
     images, // Add all images for carousel
     type: property.property_type,
     landlord: property.profiles?.full_name || property.profiles?.email || 'Property Owner',
+    landlord_phone: property.profiles?.phone || null,
+    landlord_email: property.profiles?.email || null,
     available: property.available,
     description: property.description,
     address: property.address,
