@@ -128,14 +128,7 @@ export function LocationSearch({
               onLocationSelect(locationData)
             }
 
-            // Navigate to search page with location parameters
-            const searchParams = new URLSearchParams()
-            if (city) searchParams.append('city', city)
-            if (state) searchParams.append('state', state)
-            searchParams.append('lat', locationData.coordinates.lat.toString())
-            searchParams.append('lng', locationData.coordinates.lng.toString())
-            
-            router.push(`/search?${searchParams.toString()}`)
+            // The parent component will handle the navigation
           })
         }
       } catch (error) {

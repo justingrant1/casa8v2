@@ -264,6 +264,8 @@ export default function HomePage() {
     isOpen: false,
   })
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [searchLocation, setSearchLocation] = useState<any>(null)
+  const [bedrooms, setBedrooms] = useState<string>('any')
 
   // Fetch user location on mount
   useEffect(() => {
@@ -383,6 +385,29 @@ export default function HomePage() {
     toggleFavorite(propertyId)
   }
 
+  const handleSearch = (mapView = false) => {
+    const searchParams = new URLSearchParams()
+    
+    if (searchLocation) {
+      if (searchLocation.city) searchParams.append('city', searchLocation.city)
+      if (searchLocation.state) searchParams.append('state', searchLocation.state)
+      if (searchLocation.coordinates) {
+        searchParams.append('lat', searchLocation.coordinates.lat.toString())
+        searchParams.append('lng', searchLocation.coordinates.lng.toString())
+      }
+    }
+
+    if (bedrooms !== 'any') {
+      searchParams.append('bedrooms', bedrooms)
+    }
+
+    if (mapView) {
+      searchParams.append('view', 'map')
+    }
+
+    router.push(`/search?${searchParams.toString()}`)
+  }
+
   const handleOnboardingComplete = async (data: any) => {
     console.log('🏠 Homepage: handleOnboardingComplete called with data:', data)
     
@@ -469,13 +494,11 @@ export default function HomePage() {
                 <div className="flex flex-col lg:flex-row gap-4">
                   <LocationSearch
                     placeholder="Enter city, neighborhood, or ZIP code..."
-                    onLocationSelect={(location) => {
-                      console.log('Location selected:', location)
-                    }}
+                    onLocationSelect={setSearchLocation}
                   />
 
                   <div className="flex-shrink-0 w-full lg:w-48">
-                    <Select>
+                    <Select value={bedrooms} onValueChange={setBedrooms}>
                       <SelectTrigger className="h-14 text-lg border-0 bg-gray-50 focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Select # of bedrooms" />
                       </SelectTrigger>
@@ -491,26 +514,24 @@ export default function HomePage() {
                     </Select>
                   </div>
 
-                  <Link href="/search" className="flex-shrink-0">
-                    <Button
-                      size="lg"
-                      className="h-14 px-8 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
-                    >
-                      <Search className="w-5 h-5" />
-                      Search Properties
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    className="h-14 px-8 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
+                    onClick={() => handleSearch()}
+                  >
+                    <Search className="w-5 h-5" />
+                    Search Properties
+                  </Button>
                   
-                  <Link href="/search?view=map" className="flex-shrink-0">
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="h-14 px-6 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Map className="w-5 h-5" />
-                      Map View
-                    </Button>
-                  </Link>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 px-6 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    onClick={() => handleSearch(true)}
+                  >
+                    <Map className="w-5 h-5" />
+                    Map View
+                  </Button>
                 </div>
               </div>
             </div>
