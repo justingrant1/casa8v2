@@ -481,11 +481,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-8 text-gray-900 leading-tight">
-              Welcome Home with
-              <span className="text-primary block">Section 8</span>
+              Section 8 Housing & Affordable Rentals
+              <span className="text-primary block">Find HUD Approved Properties</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Discover thousands of affordable rentals that accept Section 8 vouchers. Whether you're a tenant seeking your next home or a landlord ready to list, join our community of over 10,000 verified listings today.
+              Search thousands of <strong>Section 8 approved apartments</strong> and <strong>affordable housing</strong> nationwide. Connect with verified landlords offering <strong>HUD properties</strong>, <strong>low-income housing</strong>, and <strong>subsidized rentals</strong> that accept housing vouchers in your area.
             </p>
 
             {/* Enhanced Search Bar with backdrop */}

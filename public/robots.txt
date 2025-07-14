@@ -1,0 +1,55 @@
+# Casa8 Robots.txt
+# https://casa8.vercel.app/robots.txt
+
+User-agent: *
+Allow: /
+
+# Important pages for indexing
+Allow: /search
+Allow: /property/
+Allow: /about
+Allow: /contact
+Allow: /register
+Allow: /list-property
+Allow: /terms
+Allow: /privacy
+
+# Block admin and private areas
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /favorites
+Disallow: /login
+Disallow: /forgot-password
+Disallow: /apply/
+Disallow: /api/
+
+# Block duplicate content
+Disallow: /*?sort=
+Disallow: /*?page=
+Disallow: /*&sort=
+Disallow: /*&page=
+
+# Allow specific search parameters that create valuable landing pages
+Allow: /*?city=*
+Allow: /*?state=*
+Allow: /*?bedrooms=*
+Allow: /*?price=*
+
+# Sitemap location
+Sitemap: https://casa8.vercel.app/sitemap.xml
+
+# Crawl delay (be nice to small servers)
+Crawl-delay: 1
+
+# Specific bot instructions
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+User-agent: facebookexternalhit
+Allow: /
