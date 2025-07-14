@@ -227,6 +227,8 @@ export default function PropertyDetailPage() {
   const propertyId = params.id as string
   
   const [property, setProperty] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [applyModal, setApplyModal] = useState(false)
   const [contactModal, setContactModal] = useState(false)
@@ -236,6 +238,7 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     async function fetchProperty() {
       try {
+        setIsLoading(true)
         const data = await getPropertyById(propertyId)
         
         if (data) {
@@ -266,16 +269,29 @@ export default function PropertyDetailPage() {
             yearBuilt: 2020,
           }
           setProperty(transformedProperty)
+          setNotFound(false)
         } else {
           // Fall back to mock data if property not found in database
           const fallbackProperty = fallbackPropertyData[Number(propertyId) as keyof typeof fallbackPropertyData]
-          setProperty(fallbackProperty || null)
+          if (fallbackProperty) {
+            setProperty(fallbackProperty)
+            setNotFound(false)
+          } else {
+            setNotFound(true)
+          }
         }
       } catch (error) {
         console.error('Error fetching property:', error)
         // Try fallback data
         const fallbackProperty = fallbackPropertyData[Number(propertyId) as keyof typeof fallbackPropertyData]
-        setProperty(fallbackProperty || null)
+        if (fallbackProperty) {
+          setProperty(fallbackProperty)
+          setNotFound(false)
+        } else {
+          setNotFound(true)
+        }
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -349,16 +365,39 @@ export default function PropertyDetailPage() {
     }
   }
 
-  if (!property) {
+  // Don't render anything while loading or if not found - prevents flash
+  if (isLoading || !property) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
-          <p className="text-gray-600 mb-4">The property you're looking for doesn't exist or has been removed.</p>
-          <Link href="/">
-            <Button>Back to Home</Button>
-          </Link>
-        </div>
+      <div className="min-h-screen bg-background">
+        <header className="border-b">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" onClick={() => router.back()}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" size="icon" disabled>
+                  <Heart className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" disabled>
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+        {notFound && (
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Property Not Found</h1>
+              <p className="text-gray-600 mb-4">The property you're looking for doesn't exist or has been removed.</p>
+              <Link href="/">
+                <Button>Back to Home</Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
