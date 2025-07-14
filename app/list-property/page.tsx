@@ -51,6 +51,7 @@ export default function ListPropertyPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isProcessingImages, setIsProcessingImages] = useState(false)
   const [mainImageIndex, setMainImageIndex] = useState(0)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -153,6 +154,58 @@ export default function ListPropertyPage() {
       [field]: value,
     }))
   }
+
+
+  const handleGenerateDetails = async () => {
+    if (!addressData) {
+      toast({
+        title: "Address required",
+        description: "Please select an address before generating details.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const response = await fetch('/api/generate-listing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address: addressData.formatted_address }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate listing details');
+      }
+
+      const data = await response.json();
+
+      setFormData((prev) => ({
+        ...prev,
+        title: data.title || prev.title,
+        description: data.description || prev.description,
+        bedrooms: data.beds?.toString() || prev.bedrooms,
+        bathrooms: data.baths?.toString() || prev.bathrooms,
+        sqft: data.sqft?.toString() || prev.sqft,
+      }));
+
+      toast({
+        title: "Details generated!",
+        description: "The listing details have been filled in for you.",
+      });
+    } catch (error) {
+      console.error('Error generating details:', error);
+      toast({
+        title: "Error generating details",
+        description: "Could not generate listing details. Please fill them in manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleAddressSelect = (selectedAddress: AddressData) => {
     setAddressData(selectedAddress)
@@ -361,7 +414,23 @@ export default function ListPropertyPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Property Title</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="title">Property Title</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDetails}
+                    disabled={!addressData || isGenerating}
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Star className="w-4 h-4 mr-2" />
+                    )}
+                    Complete with AI
+                  </Button>
+                </div>
                 <Input
                   id="title"
                   placeholder="e.g., Modern Downtown Apartment"
