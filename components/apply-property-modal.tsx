@@ -124,99 +124,111 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md sm:max-w-lg md:max-w-xl mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Apply for this Property</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl font-semibold">Apply for this Property</DialogTitle>
           <p className="text-sm text-muted-foreground">
             Please fill out the form below to apply for this rental property.
           </p>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4 px-1">
           <div>
             <h3 className="font-semibold text-lg mb-3">Personal Information</h3>
             <p className="text-sm text-muted-foreground mb-4">Provide your contact details for the application.</p>
           </div>
 
           {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
               <Input
                 id="firstName"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
                 required
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
               <Input
                 id="lastName"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
                 required
+                className="w-full"
               />
             </div>
           </div>
 
           {/* Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
               required
+              className="w-full"
+              placeholder="Enter your email address"
             />
           </div>
 
           {/* Phone */}
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
+            <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
               value={formData.phone}
               onChange={(e) => handleInputChange("phone", e.target.value)}
               required
+              className="w-full"
+              placeholder="Enter your phone number"
             />
           </div>
 
           {/* Section 8 */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-start space-x-3 py-2">
             <Checkbox
               id="hasSection8"
               checked={formData.hasSection8}
               onCheckedChange={(checked) => setFormData(prev => ({ ...prev, hasSection8: checked as boolean }))}
+              className="mt-1"
             />
-            <Label htmlFor="hasSection8">I have Section 8 voucher</Label>
+            <Label htmlFor="hasSection8" className="text-sm font-medium leading-relaxed">
+              I have Section 8 voucher
+            </Label>
           </div>
 
           {/* Additional Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Additional Message (Optional)</Label>
+            <Label htmlFor="message" className="text-sm font-medium">Additional Message (Optional)</Label>
             <Textarea
               id="message"
               placeholder="Any additional information you'd like to provide..."
               value={formData.message}
               onChange={(e) => handleInputChange("message", e.target.value)}
               rows={3}
+              className="w-full resize-none"
             />
           </div>
 
           {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-black hover:bg-gray-800 text-white"
-            disabled={isLoading || !formData.firstName || !formData.lastName || !formData.email || !formData.phone}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : null}
-            {isLoading ? 'Submitting...' : 'Submit Application'}
-          </Button>
+          <div className="pt-4">
+            <Button
+              type="submit"
+              className="w-full bg-black hover:bg-gray-800 text-white py-3 text-base font-medium"
+              disabled={isLoading || !formData.firstName || !formData.lastName || !formData.email || !formData.phone}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              {isLoading ? 'Submitting...' : 'Submit Application'}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
