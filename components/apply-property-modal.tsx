@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +43,28 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
     hasSection8: false,
     message: "",
   })
+
+  // Auto-populate form fields from user profile when modal opens
+  useEffect(() => {
+    if (isOpen && profile) {
+      // Extract first and last name from full_name
+      const nameParts = profile.full_name?.split(' ') || []
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+      
+      setFormData({
+        firstName: firstName,
+        lastName: lastName,
+        email: profile.email || user?.email || '',
+        phone: profile.phone || '',
+        moveInDate: '',
+        monthlyIncome: '',
+        employmentStatus: '',
+        hasSection8: profile.has_section8 || false,
+        message: '',
+      })
+    }
+  }, [isOpen, profile, user])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
