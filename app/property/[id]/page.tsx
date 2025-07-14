@@ -258,7 +258,7 @@ export default function PropertyDetailPage() {
             landlord: {
               name: data.profiles?.full_name || "Property Owner",
               avatar: "/placeholder.svg",
-              phone: data.contact_phone || null, // Use the property's contact_phone, not the profile's phone
+              phone: data.profiles?.phone || data.contact_phone || null, // Use the profile's phone first, then property contact_phone as fallback
               email: data.profiles?.email || "owner@example.com",
               rating: 4.5,
               properties: 5,
