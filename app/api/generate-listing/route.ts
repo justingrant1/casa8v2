@@ -40,7 +40,6 @@ export async function POST(req: Request) {
           content: `Address: ${address}`
         }
       ],
-      response_format: { type: "json_object" },
     });
 
     const result = completion.choices[0].message.content;
@@ -51,8 +50,9 @@ export async function POST(req: Request) {
     const parsedResult = JSON.parse(result);
 
     return NextResponse.json(parsedResult);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating listing details:', error);
-    return NextResponse.json({ error: 'Failed to generate listing details' }, { status: 500 });
+    const errorMessage = error.message || 'An unknown error occurred';
+    return NextResponse.json({ error: 'Failed to generate listing details', details: errorMessage }, { status: 500 });
   }
 }
