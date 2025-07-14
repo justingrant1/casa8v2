@@ -267,6 +267,10 @@ export default function PropertyDetailPage() {
               properties: 5,
             },
             yearBuilt: 2020,
+            // Lease terms from the listing
+            deposit: Number((data as any).security_deposit) || 0,
+            negotiableDeposit: (data as any).negotiable_deposit || false,
+            leaseTerms: (data as any).lease_terms || "12 months minimum",
           }
           setProperty(transformedProperty)
           setNotFound(false)
@@ -582,6 +586,28 @@ export default function PropertyDetailPage() {
                       <span className="text-sm">{amenity}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Lease Terms */}
+              <div>
+                <h2 className="text-xl font-semibold mb-3">Lease Terms</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Security Deposit</span>
+                    <span className="font-medium">
+                      ${property.deposit.toLocaleString()}
+                      {property.negotiableDeposit && (
+                        <Badge variant="secondary" className="ml-2">Negotiable</Badge>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Lease Terms</span>
+                    <span className="font-medium">{property.leaseTerms}</span>
+                  </div>
                 </div>
               </div>
 
