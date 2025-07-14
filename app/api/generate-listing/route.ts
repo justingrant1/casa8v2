@@ -18,9 +18,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Address is required' }, { status: 400 });
     }
 
-    // This is a placeholder for the actual implementation
-    // In the next steps, I will add the logic to call the OpenAI API
-    // and perform the web searches and data extraction.
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [
@@ -40,19 +37,27 @@ export async function POST(req: Request) {
           content: `Address: ${address}`
         }
       ],
+      response_format: { type: "json_object" },
     });
 
     const result = completion.choices[0].message.content;
     if (!result) {
-      return NextResponse.json({ error: 'Failed to generate listing details' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to generate listing details from OpenAI' }, { status: 500 });
     }
 
     const parsedResult = JSON.parse(result);
 
     return NextResponse.json(parsedResult);
   } catch (error: any) {
-    console.error('Error generating listing details:', error);
-    const errorMessage = error.message || 'An unknown error occurred';
+    console.error('Error in /api/generate-listing:', error);
+    
+    let errorMessage = 'An unknown error occurred';
+    if (error instanceof OpenAI.APIError) {
+      errorMessage = `OpenAI API Error: ${error.status} ${error.name} ${error.message}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
     return NextResponse.json({ error: 'Failed to generate listing details', details: errorMessage }, { status: 500 });
   }
 }
