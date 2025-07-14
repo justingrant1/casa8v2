@@ -691,6 +691,72 @@ export default function SearchPage() {
               </div>
             </div>
 
+            {/* Active Search Terms & Filters Display */}
+            {hasActiveFilters && (
+              <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6 mb-8">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-3">Active Search & Filters</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {/* Location Search */}
+                      {locationQuery && (
+                        <Badge variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          📍 {locationQuery}
+                        </Badge>
+                      )}
+                      
+                      {/* Text Search */}
+                      {searchQuery && (
+                        <Badge variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          🔍 "{searchQuery}"
+                        </Badge>
+                      )}
+                      
+                      {/* Bedrooms */}
+                      {bedrooms !== "any" && (
+                        <Badge variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          🛏️ {bedrooms === "studio" ? "Studio" : bedrooms === "5+" ? "5+ bedrooms" : `${bedrooms} bedroom${bedrooms !== "1" ? "s" : ""}`}
+                        </Badge>
+                      )}
+                      
+                      {/* Bathrooms */}
+                      {bathrooms !== "any" && (
+                        <Badge variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          🚿 {bathrooms === "3+" ? "3+ bathrooms" : `${bathrooms} bathroom${bathrooms !== "1" ? "s" : ""}`}
+                        </Badge>
+                      )}
+                      
+                      {/* Property Type */}
+                      {propertyType !== "any" && (
+                        <Badge variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          🏠 {propertyType}
+                        </Badge>
+                      )}
+                      
+                      {/* Amenities */}
+                      {selectedAmenities.map((amenity) => (
+                        <Badge key={amenity} variant="outline" className="bg-white border-blue-300 text-blue-800 px-3 py-1">
+                          ✨ {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="bg-white border-blue-300 text-blue-800 hover:bg-blue-50"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Results Content - List or Map View */}
             {sortedProperties.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-lg border p-12 text-center">
