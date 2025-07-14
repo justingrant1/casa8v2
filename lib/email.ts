@@ -18,7 +18,7 @@ export async function sendContactEmail(data: {
   message: string
 }) {
   try {
-    const response = await emailjs.send(SERVICE_ID, 'template_contact', {
+    const response = await emailjs.send(SERVICE_ID, 'contact_form', {
       to_name: data.landlord_name,
       to_email: data.landlord_email,
       from_name: data.tenant_name,
@@ -48,7 +48,7 @@ export async function sendApplicationEmail(data: {
   additional_notes?: string
 }) {
   try {
-    const response = await emailjs.send(SERVICE_ID, 'template_application', {
+    const response = await emailjs.send(SERVICE_ID, 'application_form', {
       to_name: data.landlord_name,
       to_email: data.landlord_email,
       applicant_name: data.tenant_name,
