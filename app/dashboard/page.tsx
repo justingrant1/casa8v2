@@ -201,7 +201,7 @@ export default function LandlordDashboard() {
       fetchApplications()
       fetchMessages()
     }
-  }, [user, authLoading, router, initialized])
+  }, [user, authLoading, initialized])
 
   // Show loading screen while auth is loading
   if (authLoading) {
@@ -342,32 +342,17 @@ export default function LandlordDashboard() {
   const handleDelete = async (propertyId: number) => {
     if (!user) return
 
+    setLoading(true)
     try {
       await deleteProperty(propertyId.toString(), user.id)
       
-      // Remove from local state with proper refresh
-      setLandlordProperties(prev => {
-        const updated = prev.filter(p => p.id !== propertyId)
-        console.log('🔄 Updated properties after deletion:', updated)
-        return updated
-      })
-      
-      // Also update property statuses
-      setPropertyStatuses(prev => {
-        const { [propertyId]: removed, ...rest } = prev
-        return rest
-      })
+      // Refetch properties to ensure consistency
+      await fetchLandlordProperties()
       
       toast({
         title: "Property deleted",
         description: "Property has been successfully removed from your listings"
       })
-
-      // Force a re-render by briefly setting loading state
-      setTimeout(() => {
-        setLoading(false)
-      }, 100)
-      
     } catch (error) {
       console.error('Error deleting property:', error)
       toast({

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2 } from "lucide-react"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { createApplication } from "@/lib/applications"
 import { useAuth } from "@/lib/auth"
 
@@ -31,6 +32,7 @@ interface ApplyPropertyModalProps {
 
 export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: ApplyPropertyModalProps) {
   const { user, profile } = useAuth()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
@@ -71,10 +73,8 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
     e.preventDefault()
     
     if (!user) {
-      toast({
-        title: "Authentication required",
+      toast.error("Authentication required", {
         description: "Please log in to submit applications.",
-        variant: "destructive",
       })
       return
     }
@@ -95,27 +95,25 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
 
       await createApplication(applicationData)
 
-      toast({
-        title: "Application Submitted!",
-        description: "Your rental application has been submitted successfully. The landlord will be notified.",
+      // Temporary alert for debugging
+      alert("Application submitted successfully! This is a temporary message.")
+
+      toast.success("Application Submitted!", {
+        description: "Your application has been sent to the landlord.",
+        action: {
+          label: "View My Applications",
+          onClick: () => router.push('/dashboard?tab=applications'),
+        },
       })
       
-      // Reset form and close modal
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        hasSection8: false,
-        message: "",
-      })
       onClose()
     } catch (error: any) {
       console.error('Application submission error:', error)
-      toast({
-        title: "Failed to submit application",
-        description: error.message || "Please try again or contact the landlord directly.",
-        variant: "destructive",
+      // Log the full error object for more details
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      
+      toast.error("Failed to submit application", {
+        description: error.message || "An unexpected error occurred. Please try again.",
       })
     } finally {
       setIsLoading(false)
