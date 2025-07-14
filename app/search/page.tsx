@@ -16,6 +16,7 @@ import Image from "next/image"
 import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
 import { SimpleMap } from "@/components/simple-map"
+import { UserDropdown } from "@/components/user-dropdown"
 import { getProperties, searchProperties, formatPropertyForFrontend } from "@/lib/properties"
 import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles } from "@/lib/location"
 import { useAuth } from "@/lib/auth"
@@ -448,14 +449,20 @@ export default function SearchPage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <Button variant="ghost" className="font-medium">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button className="font-medium">Sign Up</Button>
-              </Link>
+              {user ? (
+                <UserDropdown />
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" className="font-medium">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button className="font-medium">Sign Up</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

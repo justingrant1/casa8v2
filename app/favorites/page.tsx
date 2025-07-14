@@ -10,6 +10,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
+import { UserDropdown } from "@/components/user-dropdown"
 
 export default function FavoritesPage() {
   const router = useRouter()
@@ -119,14 +120,20 @@ export default function FavoritesPage() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <Button variant="ghost" className="font-medium">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/register">
-                <Button className="font-medium">Sign Up</Button>
-              </Link>
+              {user ? (
+                <UserDropdown />
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="ghost" className="font-medium">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button className="font-medium">Sign Up</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
