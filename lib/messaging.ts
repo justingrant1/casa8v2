@@ -386,15 +386,15 @@ async function sendMessageEmail(message: any) {
       content: message.content.substring(0, 100) + '...'
     })
 
-    // Temporarily disabled due to EmailJS template configuration issues
-    // await sendContactEmail({
-    //   landlord_name: recipientName,
-    //   landlord_email: message.recipient?.email || '',
-    //   tenant_name: senderName,
-    //   tenant_email: message.sender?.email || '',
-    //   property_title: propertyTitle,
-    //   message: message.content
-    // })
+    // Send email notification via EmailJS
+    await sendContactEmail({
+      landlord_name: recipientName,
+      landlord_email: message.recipient?.email || '',
+      tenant_name: senderName,
+      tenant_email: message.sender?.email || '',
+      property_title: propertyTitle,
+      message: message.content
+    })
 
     console.log('Email notification sent successfully')
   } catch (error) {

@@ -41,19 +41,37 @@ export async function sendContactEmail(data: {
 
     console.log('Sending email with data:', {
       template: 'template_contact',
-      to_name: data.landlord_name,
-      to_email: data.landlord_email,
-      from_name: data.tenant_name,
-      from_email: data.tenant_email,
+      landlord_name: data.landlord_name,
+      landlord_email: data.landlord_email,
+      tenant_name: data.tenant_name,
+      tenant_email: data.tenant_email,
       property_title: data.property_title,
       message: data.message.substring(0, 100) + '...' // Don't log full message
     })
+
+    // Create a comprehensive message that includes landlord contact info
+    // Since your template has hardcoded "To Email", we'll include landlord details in the message
+    const enhancedMessage = `
+LANDLORD CONTACT INFO:
+Name: ${data.landlord_name}
+Email: ${data.landlord_email}
+
+TENANT INQUIRY:
+From: ${data.tenant_name} (${data.tenant_email})
+Property: ${data.property_title}
+
+MESSAGE:
+${data.message}
+
+---
+This inquiry should be forwarded to: ${data.landlord_email}
+    `.trim()
 
     const response = await emailjs.send(SERVICE_ID, 'template_contact', {
       title: data.property_title,
       name: data.tenant_name,
       email: data.tenant_email,
-      message: data.message,
+      message: enhancedMessage,
     })
     
     console.log('EmailJS response:', response)
