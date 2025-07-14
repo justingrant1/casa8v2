@@ -103,9 +103,6 @@ export default function ProfilePage() {
       })
       setIsEditing(false)
       
-      // Refresh the page to show updated data
-      window.location.reload()
-      
     } catch (error: any) {
       console.error('Error updating profile:', error)
       toast({
