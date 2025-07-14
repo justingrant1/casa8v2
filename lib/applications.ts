@@ -315,11 +315,6 @@ async function createStatusUpdateNotification(application: any, status: string, 
 // Helper functions for email notifications using EmailJS
 async function sendApplicationEmail(application: any) {
   try {
-    // Only send email notifications in browser environment
-    if (typeof window === 'undefined') {
-      return
-    }
-
     // Get landlord information
     const { data: landlord } = await supabase
       .from('profiles')
@@ -355,11 +350,6 @@ async function sendApplicationEmail(application: any) {
 
 async function sendStatusUpdateEmail(application: any, status: string, message?: string) {
   try {
-    // Only send email notifications in browser environment
-    if (typeof window === 'undefined') {
-      return
-    }
-
     // Get landlord information for the "from" field
     const { data: landlord } = await supabase
       .from('profiles')
