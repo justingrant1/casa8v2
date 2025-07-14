@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sendApplicationEmail as sendApplicationEmailJS } from './email'
 
 export interface Application {
   id: string
@@ -23,6 +24,16 @@ export interface Application {
   ref_text?: string
   created_at: string
   updated_at: string
+  // Optional joined properties data
+  properties?: {
+    title: string
+    address: string
+    rent_amount: number
+    images?: {
+      url: string
+      is_main: boolean
+    }[]
+  }
 }
 
 export interface CreateApplicationData {
@@ -301,30 +312,83 @@ async function createStatusUpdateNotification(application: any, status: string, 
   }
 }
 
-// Helper functions for email notifications (will integrate with EmailJS)
+// Helper functions for email notifications using EmailJS
 async function sendApplicationEmail(application: any) {
   try {
-    // This will be implemented when we integrate EmailJS
-    console.log('Application email notification:', {
-      to: 'landlord_email', // Get from landlord profile
-      application: application.tenant_name,
-      property: application.properties?.title
+    // Only send email notifications in browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    // Get landlord information
+    const { data: landlord } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', application.landlord_id)
+      .single()
+
+    if (!landlord?.email) {
+      console.log('Could not find landlord email for application notification')
+      return
+    }
+
+    // Send application email to landlord
+    await sendApplicationEmailJS({
+      landlord_name: landlord.full_name || 'Landlord',
+      landlord_email: landlord.email,
+      tenant_name: application.tenant_name,
+      tenant_email: application.tenant_email,
+      property_title: application.properties?.title || 'Property',
+      move_in_date: application.move_in_date,
+      monthly_income: application.monthly_income?.toString(),
+      employment_status: application.employment_status,
+      has_section8: application.has_voucher,
+      additional_notes: application.message
     })
+
+    console.log('Application email notification sent successfully')
   } catch (error) {
-    console.error('Error sending application email:', error)
+    console.error('Error sending application email notification:', error)
+    // Don't throw error to avoid breaking application submission if email fails
   }
 }
 
 async function sendStatusUpdateEmail(application: any, status: string, message?: string) {
   try {
-    // This will be implemented when we integrate EmailJS
-    console.log('Status update email notification:', {
-      to: application.tenant_email,
-      status,
-      message,
-      property: application.properties?.title
+    // Only send email notifications in browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    // Get landlord information for the "from" field
+    const { data: landlord } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', application.landlord_id)
+      .single()
+
+    const landlordName = landlord?.full_name || 'Your Landlord'
+    const statusMessage = status === 'approved' 
+      ? `Great news! Your application for "${application.properties?.title}" has been approved.${message ? `\n\nMessage from landlord: ${message}` : ''}`
+      : `Your application for "${application.properties?.title}" has been reviewed.${message ? `\n\nMessage from landlord: ${message}` : ''}`
+
+    // For status updates, we use the contact email template since there's no specific status update template
+    await sendApplicationEmailJS({
+      landlord_name: landlordName,
+      landlord_email: landlord?.email || 'noreply@casa8.com',
+      tenant_name: application.tenant_name,
+      tenant_email: application.tenant_email,
+      property_title: application.properties?.title || 'Property',
+      move_in_date: application.move_in_date,
+      monthly_income: application.monthly_income?.toString(),
+      employment_status: application.employment_status,
+      has_section8: application.has_voucher,
+      additional_notes: statusMessage
     })
+
+    console.log('Status update email notification sent successfully')
   } catch (error) {
-    console.error('Error sending status update email:', error)
+    console.error('Error sending status update email notification:', error)
+    // Don't throw error to avoid breaking status update if email fails
   }
 }

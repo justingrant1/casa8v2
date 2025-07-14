@@ -87,13 +87,50 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     }
   }
 
-  const startChat = () => {
-    // Handle chat initiation
-    toast({
-      title: "Chat started!",
-      description: "Opening chat with the landlord...",
-    })
-    onClose()
+  const startChat = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to start a chat.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Send initial message to start the conversation
+      await contactLandlord({
+        property_id: property.id,
+        landlord_id: landlord.id,
+        subject: `Inquiry about ${property.title}`,
+        message: `Hi ${landlord.name},\n\nI'm interested in your property "${property.title}" and would like to chat about it.\n\nThank you!`,
+        tenant_name: profile?.full_name || user.email || 'Anonymous',
+        tenant_email: user.email || '',
+      })
+
+      toast({
+        title: "Chat started!",
+        description: "Your initial message has been sent. You can continue the conversation in your messages.",
+      })
+      
+      // Redirect to dashboard messages tab after a brief delay
+      setTimeout(() => {
+        window.location.href = '/dashboard?tab=messages'
+      }, 1500)
+      
+      onClose()
+    } catch (error: any) {
+      console.error('Start chat error:', error)
+      toast({
+        title: "Failed to start chat",
+        description: error.message || "Please try again or contact the landlord directly.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -130,9 +167,13 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
                 <p className="text-sm text-muted-foreground mb-2">You'll be connected with:</p>
                 <p className="font-medium">{landlord.name}</p>
               </div>
-              <Button onClick={startChat} className="w-full">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Start Chat
+              <Button onClick={startChat} className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                )}
+                {isLoading ? 'Starting Chat...' : 'Start Chat'}
               </Button>
             </div>
           </TabsContent>

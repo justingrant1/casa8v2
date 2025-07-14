@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sendContactEmail } from './email'
 
 export interface Message {
   id: string
@@ -12,6 +13,30 @@ export interface Message {
   is_read: boolean
   created_at: string
   read_at?: string
+  // Optional joined user data
+  sender?: {
+    email: string
+    user_metadata?: {
+      full_name?: string
+      name?: string
+    }
+  }
+  recipient?: {
+    email: string
+    user_metadata?: {
+      full_name?: string
+      name?: string
+    }
+  }
+  // Optional joined property/application data
+  property?: {
+    title: string
+    address: string
+  }
+  application?: {
+    status: string
+    tenant_name: string
+  }
 }
 
 export interface CreateMessageData {
@@ -324,18 +349,54 @@ async function createMessageNotification(message: any) {
   }
 }
 
-// Helper function for email notifications (will integrate with EmailJS)
+// Helper function for email notifications using EmailJS
 async function sendMessageEmail(message: any) {
   try {
-    // This will be implemented when we integrate EmailJS
-    console.log('Message email notification:', {
-      to: message.recipient?.email,
-      from: message.sender?.email,
-      subject: message.subject || 'New Message',
+    // Only send email notifications in browser environment
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    // Get additional property information if available
+    let propertyTitle = 'Property Inquiry'
+    if (message.property_id) {
+      try {
+        const { data: property } = await supabase
+          .from('properties')
+          .select('title')
+          .eq('id', message.property_id)
+          .single()
+        
+        if (property?.title) {
+          propertyTitle = property.title
+        }
+      } catch (error) {
+        console.log('Could not fetch property title for email notification')
+      }
+    }
+
+    const senderName = message.sender?.user_metadata?.full_name || 
+                      message.sender?.user_metadata?.name || 
+                      'Casa8 User'
+    
+    const recipientName = message.recipient?.user_metadata?.full_name || 
+                         message.recipient?.user_metadata?.name || 
+                         'User'
+
+    // Send email notification to recipient
+    await sendContactEmail({
+      landlord_name: recipientName,
+      landlord_email: message.recipient?.email || '',
+      tenant_name: senderName,
+      tenant_email: message.sender?.email || '',
+      property_title: propertyTitle,
       message: message.message_text
     })
+
+    console.log('Email notification sent successfully')
   } catch (error) {
-    console.error('Error sending message email:', error)
+    console.error('Error sending message email notification:', error)
+    // Don't throw error to avoid breaking message sending if email fails
   }
 }
 
