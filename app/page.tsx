@@ -19,6 +19,7 @@ import { useFavorites } from "@/lib/favorites-context"
 import { getProperties, formatPropertyForFrontend } from "@/lib/properties"
 import { getUserLocationByIP, getNearbyProperties, kmToMiles } from "@/lib/location"
 import { ChevronLeft, ChevronRight, MapPin as LocationIcon } from "lucide-react"
+import { Navbar } from "@/components/navbar"
 
 // Property Card Component with Carousel
 function PropertyCardWithCarousel({ property, onToggleFavorite, isFavorite, openContactModal }: {
@@ -418,81 +419,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - Fixed alignment with content */}
-      <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-                <span className="text-primary-foreground font-bold text-lg">C8</span>
-              </div>
-              <span className="text-2xl font-bold text-gray-900">Casa8</span>
-            </Link>
-
-            <div className="flex items-center justify-center flex-1">
-              <nav className="hidden md:flex items-center space-x-8">
-                <Link href="/" className="text-gray-900 font-medium hover:text-primary transition-colors">
-                  Home
-                </Link>
-                <Link href="/search" className="text-gray-600 hover:text-primary transition-colors">
-                  Search
-                </Link>
-                {/* Always show Favorites link */}
-                <Link href="/favorites" className="text-gray-600 hover:text-primary transition-colors">
-                  Favorites
-                </Link>
-              </nav>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              {user ? (
-                <>
-                  {/* Favorites button - always visible for logged-in users on mobile */}
-                  <Link href="/favorites" className="md:hidden">
-                    <Button variant="ghost" size="icon">
-                      <Heart className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                  
-                  {/* Show Dashboard for landlords - include loading state for profile */}
-                  {(profile?.role === 'landlord' || (!profile && user)) && (
-                    <Link href="/dashboard">
-                      <Button variant="ghost" className="font-medium">
-                        Dashboard
-                      </Button>
-                    </Link>
-                  )}
-                  
-                  {/* Show Post Listing for landlords or while profile is loading */}
-                  {(profile?.role === 'landlord' || (!profile && user)) && (
-                    <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
-                      Post Listing
-                    </Button>
-                  )}
-                  
-                  <UserDropdown />
-                </>
-              ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="ghost" className="font-medium">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button variant="outline" className="font-medium bg-transparent">
-                      Sign Up
-                    </Button>
-                  </Link>
-                  <Button className="bg-primary hover:bg-primary/90 font-medium px-6" onClick={handlePostListing}>
-                    Post Listing
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar currentPage="home" />
 
       {/* Hero Section - Enhanced with sophisticated background */}
       <section className="relative bg-gradient-to-br from-primary/8 via-primary/4 to-background py-20 lg:py-28 overflow-hidden">

@@ -21,6 +21,7 @@ import { getProperties, searchProperties, formatPropertyForFrontend } from "@/li
 import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles } from "@/lib/location"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
+import { Navbar } from "@/components/navbar"
 
 function SearchPropertyImage({ property }: { property: any }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -419,57 +420,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - Fixed alignment */}
-      <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-                <span className="text-primary-foreground font-bold text-lg">C8</span>
-              </div>
-              <span className="text-2xl font-bold text-gray-900">Casa8</span>
-            </Link>
-
-            <div className="flex items-center justify-center flex-1">
-              <nav className="hidden md:flex items-center space-x-8">
-                <Link href="/" className="text-gray-600 hover:text-primary transition-colors">
-                  Home
-                </Link>
-                <Link href="/search" className="text-gray-900 font-medium hover:text-primary transition-colors">
-                  Search
-                </Link>
-                <Link href="/favorites" className="text-gray-600 hover:text-primary transition-colors">
-                  Favorites
-                </Link>
-              </nav>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              {/* Mobile favorites button */}
-              <Link href="/favorites" className="md:hidden">
-                <Button variant="ghost" size="icon" className="font-medium">
-                  <Heart className="h-5 w-5" />
-                </Button>
-              </Link>
-              
-              {user ? (
-                <UserDropdown />
-              ) : (
-                <>
-                  <Link href="/login">
-                    <Button variant="ghost" className="font-medium">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button className="font-medium">Sign Up</Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar currentPage="search" />
 
       {/* Search Header */}
       <div className="bg-white border-b">

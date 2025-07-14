@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Navbar } from "@/components/navbar"
 
 export default function LandlordDashboard() {
   const { user, loading: authLoading } = useAuth()
@@ -494,29 +495,7 @@ export default function LandlordDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header - Mobile Optimized */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 py-4 md:px-6 md:py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">C8</span>
-              </div>
-              <span className="text-lg md:text-xl font-bold">Casa8</span>
-            </div>
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <Link href="/">
-                <Button variant="outline" size="sm" className="hidden md:inline-flex">
-                  Back to Home
-                </Button>
-                <Button variant="outline" size="sm" className="md:hidden">
-                  Home
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar currentPage="dashboard" />
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">

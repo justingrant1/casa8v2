@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast"
 import { AddressAutocomplete, AddressData } from "@/components/address-autocomplete"
 import { EnhancedImageUpload } from "@/components/enhanced-image-upload"
 import { VideoUpload } from "@/components/video-upload"
+import { Navbar } from "@/components/navbar"
 
 const amenitiesList = [
   "Air conditioning",
@@ -386,9 +387,11 @@ export default function ListPropertyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
+      <Navbar currentPage="list-property" />
+
+      {/* Page Header */}
+      <div className="border-b bg-white">
+        <div className="container mx-auto px-4 py-6">
           <div className="flex items-center space-x-4">
             <Link href="/dashboard">
               <Button variant="ghost">
@@ -402,7 +405,7 @@ export default function ListPropertyPage() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="container mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">

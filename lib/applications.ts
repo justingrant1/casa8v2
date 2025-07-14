@@ -28,9 +28,9 @@ export interface Application {
   properties?: {
     title: string
     address: string
-    rent_amount: number
-    images?: {
-      url: string
+    price: number
+    property_images?: {
+      image_url: string
       is_main: boolean
     }[]
   }
@@ -93,7 +93,7 @@ export async function createApplication(data: CreateApplicationData) {
         properties:property_id (
           title,
           address,
-          rent_amount
+          price
         )
       `)
       .single()
@@ -119,12 +119,12 @@ export async function getApplicationsForLandlord(landlordId: string) {
       .from('applications')
       .select(`
         *,
-        properties:property_id (
+        properties!inner (
           title,
           address,
-          rent_amount,
-          images:property_images (
-            url,
+          price,
+          property_images (
+            image_url,
             is_main
           )
         )
@@ -147,12 +147,12 @@ export async function getApplicationsForTenant(tenantId: string) {
       .from('applications')
       .select(`
         *,
-        properties:property_id (
+        properties!inner (
           title,
           address,
-          rent_amount,
-          images:property_images (
-            url,
+          price,
+          property_images (
+            image_url,
             is_main
           )
         )
@@ -250,9 +250,9 @@ export async function getApplicationById(applicationId: string) {
         properties:property_id (
           title,
           address,
-          rent_amount,
-          images:property_images (
-            url,
+          price,
+          property_images (
+            image_url,
             is_main
           )
         )
