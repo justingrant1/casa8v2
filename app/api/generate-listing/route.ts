@@ -24,16 +24,18 @@ export async function POST(req: Request) {
           content: `You are a real estate assistant. Your task is to find information about a property at a given address from Zillow, Redfin, and Realtor.com.
           You need to extract the number of bedrooms, bathrooms, and square footage.
           Compare the information from the three sources. If there are discrepancies, use the information from Zillow.
-          Then, write a compelling and renter-focused property description.
+          Then, create a compelling property title and a renter-focused property description.
           The description should highlight the property's features and amenities that are attractive to renters.
           Do not include any information about financing or buying the property.
-          Return the information in a JSON object with the following keys: "beds", "baths", "sqft", "description".`
+          Return the information in a JSON object with the following keys: "title", "beds", "baths", "sqft", "description".
+          The final output must be a valid JSON object and nothing else.`
         },
         {
           role: 'user',
           content: `Address: ${address}`
         }
       ],
+      response_format: { type: "json_object" },
     });
 
     const result = completion.choices[0].message.content;
