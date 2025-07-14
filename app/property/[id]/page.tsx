@@ -303,6 +303,46 @@ export default function PropertyDetailPage() {
   const openContactModal = () => setContactModal(true)
   const closeContactModal = () => setContactModal(false)
 
+  const openInMaps = (address: string) => {
+    const encodedAddress = encodeURIComponent(address)
+    
+    // Detect platform
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isAndroid = /Android/.test(navigator.userAgent)
+    
+    let mapUrl = ''
+    
+    if (isIOS) {
+      // iOS - Try Apple Maps first, fallback to Google Maps
+      mapUrl = `maps://maps.apple.com/?q=${encodedAddress}`
+      // Fallback for devices without Apple Maps
+      const fallbackUrl = `https://maps.google.com/maps?q=${encodedAddress}`
+      
+      // Try to open Apple Maps
+      window.location.href = mapUrl
+      
+      // If Apple Maps fails, open Google Maps after a short delay
+      setTimeout(() => {
+        window.open(fallbackUrl, '_blank')
+      }, 1000)
+    } else if (isAndroid) {
+      // Android - Use Google Maps intent
+      mapUrl = `google.navigation:q=${encodedAddress}`
+      // Fallback to Google Maps web
+      const fallbackUrl = `https://maps.google.com/maps?q=${encodedAddress}`
+      
+      try {
+        window.location.href = mapUrl
+      } catch {
+        window.open(fallbackUrl, '_blank')
+      }
+    } else {
+      // Desktop - Open Google Maps in new tab
+      mapUrl = `https://maps.google.com/maps?q=${encodedAddress}`
+      window.open(mapUrl, '_blank')
+    }
+  }
+
   const handleToggleFavorite = () => {
     if (!user) {
       router.push('/login')
@@ -494,7 +534,12 @@ export default function PropertyDetailPage() {
                 <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
                 <div className="flex items-center text-muted-foreground mb-4">
                   <MapPin className="w-4 h-4 mr-1" />
-                  <span>{property.fullAddress}</span>
+                  <button
+                    onClick={() => openInMaps(property.fullAddress)}
+                    className="text-left hover:text-primary underline decoration-dotted underline-offset-2 transition-colors"
+                  >
+                    {property.fullAddress}
+                  </button>
                 </div>
 
                 <div className="flex items-center space-x-8 text-lg font-medium mb-4">
