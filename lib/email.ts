@@ -18,10 +18,36 @@ export async function sendContactEmail(data: {
   message: string
 }) {
   try {
+    // Debug logging
+    console.log('EmailJS configuration:', {
+      SERVICE_ID,
+      publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY ? 'configured' : 'missing',
+      window: typeof window !== 'undefined'
+    })
+
     // Check if EmailJS is properly initialized
     if (!SERVICE_ID || !process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY) {
+      console.error('EmailJS not properly configured:', {
+        SERVICE_ID: !!SERVICE_ID,
+        publicKey: !!process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      })
       throw new Error('EmailJS not properly configured')
     }
+
+    if (typeof window === 'undefined') {
+      console.error('EmailJS can only be used in browser environment')
+      throw new Error('EmailJS can only be used in browser environment')
+    }
+
+    console.log('Sending email with data:', {
+      template: 'template_contact',
+      to_name: data.landlord_name,
+      to_email: data.landlord_email,
+      from_name: data.tenant_name,
+      from_email: data.tenant_email,
+      property_title: data.property_title,
+      message: data.message.substring(0, 100) + '...' // Don't log full message
+    })
 
     const response = await emailjs.send(SERVICE_ID, 'template_contact', {
       to_name: data.landlord_name,
@@ -33,9 +59,23 @@ export async function sendContactEmail(data: {
       reply_to: data.tenant_email,
     })
     
+    console.log('EmailJS response:', response)
+    
     return { success: response.status === 200 }
   } catch (error) {
     console.error('Email error:', error)
+    
+    // Try fallback method
+    try {
+      const fallbackResult = await sendFallbackEmail(data)
+      if (fallbackResult.success) {
+        console.log('Fallback email sent successfully')
+        return fallbackResult
+      }
+    } catch (fallbackError) {
+      console.error('Fallback email failed:', fallbackError)
+    }
+    
     return { success: false, error }
   }
 }
@@ -75,6 +115,60 @@ export async function sendApplicationEmail(data: {
     return { success: response.status === 200 }
   } catch (error) {
     console.error('Application email error:', error)
+    return { success: false, error }
+  }
+}
+
+// Fallback email method using a simpler approach
+async function sendFallbackEmail(data: {
+  landlord_name: string
+  landlord_email: string
+  tenant_name: string
+  tenant_email: string
+  property_title: string
+  message: string
+}) {
+  try {
+    // Try with a simpler EmailJS configuration
+    if (typeof window === 'undefined' || !SERVICE_ID) {
+      return { success: false, error: 'No fallback available' }
+    }
+
+    // Try with different template names in case the template IDs are different
+    const templateVariations = ['template_contact', 'contact_form', 'default_template']
+    
+    for (const templateId of templateVariations) {
+      try {
+        console.log(`Trying fallback with template: ${templateId}`)
+        
+        const response = await emailjs.send(SERVICE_ID, templateId, {
+          to_name: data.landlord_name,
+          to_email: data.landlord_email,
+          from_name: data.tenant_name,
+          from_email: data.tenant_email,
+          property_title: data.property_title,
+          message: data.message,
+          reply_to: data.tenant_email,
+          // Additional common template variables
+          user_name: data.tenant_name,
+          user_email: data.tenant_email,
+          subject: `Casa8 Inquiry: ${data.property_title}`,
+          content: data.message
+        })
+        
+        if (response.status === 200) {
+          console.log(`Fallback email sent successfully with template: ${templateId}`)
+          return { success: true }
+        }
+      } catch (error) {
+        console.log(`Template ${templateId} failed:`, error)
+        continue
+      }
+    }
+    
+    return { success: false, error: 'All template variations failed' }
+  } catch (error) {
+    console.error('Fallback email error:', error)
     return { success: false, error }
   }
 }

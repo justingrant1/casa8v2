@@ -67,6 +67,41 @@ export function SimpleMap({ properties, className = "" }: SimpleMapProps) {
     // @ts-ignore
     if (!map || !window.google || !properties.length) return
 
+    // Add carousel functionality to window for InfoWindow
+    // @ts-ignore
+    window.changeImage = (propertyId: string, direction: number) => {
+      const carousel = document.getElementById(`carousel-${propertyId}`)
+      if (!carousel) return
+
+      const images = carousel.querySelectorAll('.carousel-image')
+      const dots = carousel.parentElement?.querySelectorAll('.carousel-dot')
+      
+      if (!images.length) return
+
+      // Find current active image
+      let currentIndex = 0
+      images.forEach((img, index) => {
+        if ((img as HTMLElement).style.display === 'block') {
+          currentIndex = index
+        }
+      })
+
+      // Calculate new index
+      const newIndex = (currentIndex + direction + images.length) % images.length
+
+      // Update images
+      images.forEach((img, index) => {
+        (img as HTMLElement).style.display = index === newIndex ? 'block' : 'none'
+      })
+
+      // Update dots
+      if (dots) {
+        dots.forEach((dot, index) => {
+          (dot as HTMLElement).style.background = index === newIndex ? 'white' : 'rgba(255,255,255,0.5)'
+        })
+      }
+    }
+
     // Clear existing markers
     const markers: any[] = []
 
@@ -89,19 +124,122 @@ export function SimpleMap({ properties, className = "" }: SimpleMapProps) {
 
       markers.push(marker)
 
-      const propertyImage = (property.images && property.images[0]) || property.image || "/placeholder.svg"
+      const propertyImages = property.images || [property.image || "/placeholder.svg"]
+      const hasMultipleImages = propertyImages.length > 1
+      
+      // Create carousel HTML for multiple images
+      const carouselHTML = `
+        <div style="position: relative; margin-bottom: 12px; border-radius: 8px; overflow: hidden;">
+          <div id="carousel-${property.id}" style="position: relative; width: 100%; height: 140px;">
+            ${propertyImages.map((image: string, index: number) => `
+              <img 
+                src="${image}" 
+                alt="${property.title} - Image ${index + 1}"
+                style="
+                  width: 100%; 
+                  height: 140px; 
+                  object-fit: cover; 
+                  display: ${index === 0 ? 'block' : 'none'};
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                "
+                class="carousel-image"
+                data-index="${index}"
+              />
+            `).join('')}
+          </div>
+          
+          ${hasMultipleImages ? `
+            <button 
+              onclick="changeImage('${property.id}', -1)"
+              style="
+                position: absolute; 
+                left: 8px; 
+                top: 50%; 
+                transform: translateY(-50%); 
+                background: rgba(0,0,0,0.6); 
+                color: white; 
+                border: none; 
+                border-radius: 50%; 
+                width: 32px; 
+                height: 32px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                cursor: pointer;
+                font-size: 18px;
+                z-index: 10;
+              "
+            >‹</button>
+            <button 
+              onclick="changeImage('${property.id}', 1)"
+              style="
+                position: absolute; 
+                right: 8px; 
+                top: 50%; 
+                transform: translateY(-50%); 
+                background: rgba(0,0,0,0.6); 
+                color: white; 
+                border: none; 
+                border-radius: 50%; 
+                width: 32px; 
+                height: 32px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                cursor: pointer;
+                font-size: 18px;
+                z-index: 10;
+              "
+            >›</button>
+            
+            <div style="
+              position: absolute; 
+              bottom: 8px; 
+              left: 50%; 
+              transform: translateX(-50%); 
+              display: flex; 
+              gap: 4px;
+              z-index: 10;
+            ">
+              ${propertyImages.map((_: string, index: number) => `
+                <div 
+                  style="
+                    width: 8px; 
+                    height: 8px; 
+                    border-radius: 50%; 
+                    background: ${index === 0 ? 'white' : 'rgba(255,255,255,0.5)'};
+                    transition: background 0.2s;
+                  "
+                  class="carousel-dot"
+                  data-index="${index}"
+                ></div>
+              `).join('')}
+            </div>
+            
+            <div style="
+              position: absolute; 
+              bottom: 8px; 
+              right: 8px; 
+              background: rgba(0,0,0,0.6); 
+              color: white; 
+              padding: 4px 8px; 
+              border-radius: 4px; 
+              font-size: 12px;
+              z-index: 10;
+            ">
+              ${propertyImages.length} photos
+            </div>
+          ` : ''}
+        </div>
+      `
       
       // @ts-ignore
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
           <div style="width: 280px; font-family: system-ui, -apple-system, sans-serif;">
-            <div style="margin-bottom: 12px; border-radius: 8px; overflow: hidden;">
-              <img 
-                src="${propertyImage}" 
-                alt="${property.title}"
-                style="width: 100%; height: 140px; object-fit: cover; display: block;"
-              />
-            </div>
+            ${carouselHTML}
             <div style="padding: 4px 0;">
               <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937; line-height: 1.3;">
                 ${property.title}

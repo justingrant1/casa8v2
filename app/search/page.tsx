@@ -814,7 +814,11 @@ export default function SearchPage() {
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <CardTitle className="text-xl font-bold mb-2 line-clamp-2">{property.title}</CardTitle>
+                          <Link href={`/property/${property.id}`} className="block">
+                            <CardTitle className="text-xl font-bold mb-2 line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+                              {property.title}
+                            </CardTitle>
+                          </Link>
                           <div className="flex items-center text-gray-600 mb-2">
                             <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
                             <span className="text-sm">{property.location}</span>
