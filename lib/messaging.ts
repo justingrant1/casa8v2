@@ -352,11 +352,6 @@ async function createMessageNotification(message: any) {
 // Helper function for email notifications using EmailJS
 async function sendMessageEmail(message: any) {
   try {
-    // Only send email notifications in browser environment
-    if (typeof window === 'undefined') {
-      return
-    }
-
     // Get additional property information if available
     let propertyTitle = 'Property Inquiry'
     if (message.property_id) {

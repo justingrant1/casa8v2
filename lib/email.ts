@@ -18,7 +18,12 @@ export async function sendContactEmail(data: {
   message: string
 }) {
   try {
-    const response = await emailjs.send(SERVICE_ID, 'contact_form', {
+    // Check if EmailJS is properly initialized
+    if (!SERVICE_ID || !process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY) {
+      throw new Error('EmailJS not properly configured')
+    }
+
+    const response = await emailjs.send(SERVICE_ID, 'template_contact', {
       to_name: data.landlord_name,
       to_email: data.landlord_email,
       from_name: data.tenant_name,
@@ -48,7 +53,12 @@ export async function sendApplicationEmail(data: {
   additional_notes?: string
 }) {
   try {
-    const response = await emailjs.send(SERVICE_ID, 'application_form', {
+    // Check if EmailJS is properly configured
+    if (!SERVICE_ID || !process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY) {
+      throw new Error('EmailJS not properly configured')
+    }
+
+    const response = await emailjs.send(SERVICE_ID, 'template_application', {
       to_name: data.landlord_name,
       to_email: data.landlord_email,
       applicant_name: data.tenant_name,
