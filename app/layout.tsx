@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth'
 import { FavoritesProvider } from '@/lib/favorites-context'
+import { LoadingProvider } from '@/lib/loading-context'
 import { Toaster } from '@/components/ui/sonner'
+import ErrorBoundary from '@/components/error-boundary'
+import { ErrorReporter } from '@/lib/error-reporting'
 
 export const metadata: Metadata = {
   title: 'Casa8 - Find Your Perfect Home',
@@ -17,12 +20,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <FavoritesProvider>
-            {children}
-            <Toaster />
-          </FavoritesProvider>
-        </AuthProvider>
+        <ErrorBoundary onError={(error, errorInfo) => ErrorReporter.report(error, { errorInfo })}>
+          <AuthProvider>
+            <LoadingProvider>
+              <FavoritesProvider>
+                {children}
+                <Toaster />
+              </FavoritesProvider>
+            </LoadingProvider>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

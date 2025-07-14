@@ -1,9 +1,123 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { User, AuthError } from '@supabase/supabase-js'
-import { supabase } from './supabase'
-import { Profile } from './supabase'
+import { supabase, Profile } from './supabase'
+
+// Retry configuration
+const RETRY_CONFIG = {
+  maxAttempts: 3,
+  baseDelay: 1000,
+  maxDelay: 10000,
+  multiplier: 2,
+  jitter: true
+}
+
+// Utility function for retry with exponential backoff
+const retryWithBackoff = async <T,>(
+  fn: () => Promise<T>,
+  options = RETRY_CONFIG,
+  isRetryable = (error: any) => true,
+  isMounted = () => true
+): Promise<T> => {
+  let lastError: any
+  
+  for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
+    try {
+      // Check if component is still mounted before each attempt
+      if (!isMounted()) {
+        throw new Error('Component unmounted during retry')
+      }
+      
+      const result = await fn()
+      
+      if (attempt > 1) {
+        console.log(`✅ Retry successful on attempt ${attempt}`)
+      }
+      
+      return result
+    } catch (error) {
+      lastError = error
+      
+      // Don't retry if component is unmounted
+      if (!isMounted()) {
+        console.log('🚫 Component unmounted, canceling retry')
+        throw error
+      }
+      
+      // Don't retry if error is not retryable
+      if (!isRetryable(error)) {
+        console.log('🚫 Non-retryable error, not retrying:', error)
+        throw error
+      }
+      
+      // Don't retry on last attempt
+      if (attempt === options.maxAttempts) {
+        console.log(`❌ Max retry attempts (${options.maxAttempts}) reached`)
+        throw error
+      }
+      
+      // Calculate delay with exponential backoff
+      let delay = options.baseDelay * Math.pow(options.multiplier, attempt - 1)
+      
+      // Apply jitter to prevent thundering herd
+      if (options.jitter) {
+        delay = delay * (0.5 + Math.random() * 0.5)
+      }
+      
+      // Cap at max delay
+      delay = Math.min(delay, options.maxDelay)
+      
+      console.log(`⏳ Retry attempt ${attempt} failed, retrying in ${delay}ms:`, error)
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError
+}
+
+// Helper to determine if an error is retryable
+const isRetryableError = (error: any): boolean => {
+  // Network errors are retryable
+  if (error?.name === 'NetworkError' || error?.message?.includes('network')) {
+    return true
+  }
+  
+  // Timeout errors are retryable
+  if (error?.name === 'TimeoutError' || error?.message?.includes('timeout')) {
+    return true
+  }
+  
+  // Rate limit errors are retryable
+  if (error?.status === 429) {
+    return true
+  }
+  
+  // Server errors (5xx) are retryable
+  if (error?.status >= 500 && error?.status < 600) {
+    return true
+  }
+  
+  // Supabase specific retryable errors
+  if (error?.code === 'PGRST301' || error?.code === 'PGRST302') {
+    return true
+  }
+  
+  // Auth errors are generally not retryable
+  if (error?.code?.startsWith('auth_')) {
+    return false
+  }
+  
+  // Invalid credentials are not retryable
+  if (error?.message?.includes('Invalid login credentials')) {
+    return false
+  }
+  
+  // Default to retryable for unknown errors
+  return true
+}
 
 interface AuthContextType {
   user: User | null
@@ -15,6 +129,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>
   completeOnboarding: (data: any) => Promise<{ error: Error | null }>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -23,11 +138,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Use refs to track component mounted state and avoid memory leaks
+  const mounted = useRef(true)
+  const profileCache = useRef<Map<string, Profile>>(new Map())
+  const fetchingProfile = useRef<Set<string>>(new Set())
+  const abortController = useRef<AbortController | null>(null)
+
+  // Memoized profile fetcher with caching, deduplication, and retry logic
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    if (!mounted.current) return null
+    
+    // Check cache first
+    const cached = profileCache.current.get(userId)
+    if (cached) {
+      setProfile(cached)
+      return cached
+    }
+    
+    // Check if already fetching
+    if (fetchingProfile.current.has(userId)) {
+      return null
+    }
+    
+    fetchingProfile.current.add(userId)
+    
+    try {
+      const result = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single()
+
+          if (error) {
+            throw error
+          }
+
+          return data
+        },
+        RETRY_CONFIG,
+        isRetryableError,
+        () => mounted.current
+      )
+
+      if (mounted.current) {
+        // Cache the result
+        profileCache.current.set(userId, result)
+        setProfile(result)
+      }
+      
+      return result
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      return null
+    } finally {
+      fetchingProfile.current.delete(userId)
+    }
+  }, [])
+
+  // Memoized refresh profile function
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return
+    
+    // Clear cache for this user
+    profileCache.current.delete(user.id)
+    await fetchProfile(user.id)
+  }, [user?.id, fetchProfile])
 
   useEffect(() => {
-    let mounted = true
+    mounted.current = true
     
-    // Get initial session
+    // Create abort controller for cleanup
+    abortController.current = new AbortController()
+    
     const getInitialSession = async () => {
       try {
         console.log('🔄 Getting initial session...')
@@ -35,10 +220,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (error) {
           console.error('❌ Session error:', error)
-          throw error
+          return
         }
         
-        if (!mounted) return
+        if (!mounted.current) return
         
         console.log('📧 Session found:', session?.user?.email || 'No session')
         setUser(session?.user ?? null)
@@ -51,12 +236,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('❌ Error getting initial session:', error)
-        if (mounted) {
+        if (mounted.current) {
           setUser(null)
           setProfile(null)
         }
       } finally {
-        if (mounted) {
+        if (mounted.current) {
           console.log('✅ Auth initialization complete')
           setLoading(false)
         }
@@ -65,19 +250,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession()
 
-    // Listen for auth changes with improved error handling
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return
+        if (!mounted.current) return
         
         console.log('🔄 Auth state changed:', event, session?.user?.email || 'No session')
         
         try {
-          // Handle different auth events
           if (event === 'SIGNED_OUT') {
             console.log('🚪 User signed out')
             setUser(null)
             setProfile(null)
+            // Clear all caches
+            profileCache.current.clear()
+            fetchingProfile.current.clear()
           } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             console.log('🔑 User signed in or token refreshed')
             setUser(session?.user ?? null)
@@ -88,11 +275,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else if (event === 'USER_UPDATED') {
             console.log('👤 User updated')
             setUser(session?.user ?? null)
+            
+            // Refresh profile on user update
+            if (session?.user) {
+              profileCache.current.delete(session.user.id)
+              await fetchProfile(session.user.id)
+            }
           }
         } catch (error) {
           console.error('❌ Error in auth state change:', error)
         } finally {
-          if (mounted) {
+          if (mounted.current) {
             setLoading(false)
           }
         }
@@ -100,51 +293,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching profile:', error)
-        return
+      mounted.current = false
+      
+      // Clean up abort controller
+      if (abortController.current) {
+        abortController.current.abort()
       }
-
-      setProfile(data)
-    } catch (error) {
-      console.error('Error fetching profile:', error)
+      
+      // Clean up subscription
+      subscription.unsubscribe()
+      
+      // Clear all caches on unmount
+      profileCache.current.clear()
+      fetchingProfile.current.clear()
     }
-  }
+  }, [fetchProfile])
 
   const signUp = async (email: string, password: string, userData: { full_name: string; role: 'tenant' | 'landlord' }) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: userData,
-          emailRedirectTo: undefined // Skip email confirmation
-        }
-      })
+      const result = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: userData,
+              emailRedirectTo: undefined // Skip email confirmation
+            }
+          })
 
-      if (error) {
-        return { error }
-      }
+          if (error) {
+            throw error
+          }
+
+          return data
+        },
+        RETRY_CONFIG,
+        isRetryableError,
+        () => mounted.current
+      )
 
       // Create profile only if it doesn't already exist
-      if (data.user) {
+      if (result.user) {
         const { data: existingProfile, error: fetchError } = await supabase
           .from('profiles')
           .select('id')
-          .eq('id', data.user.id)
+          .eq('id', result.user.id)
           .single()
 
         if (fetchError && fetchError.code !== 'PGRST116') { // Ignore 'not found' error
@@ -153,30 +347,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!existingProfile) {
           console.log('No existing profile found, creating a new one...')
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              email: data.user.email!,
-              full_name: userData.full_name,
-              role: userData.role
-            })
+          await retryWithBackoff(
+            async () => {
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: result.user!.id,
+                  email: result.user!.email!,
+                  full_name: userData.full_name,
+                  role: userData.role
+                })
 
-          if (profileError) {
-            console.error('Error creating profile:', profileError)
-          }
+              if (profileError) {
+                throw profileError
+              }
+            },
+            RETRY_CONFIG,
+            isRetryableError,
+            () => mounted.current
+          )
         } else {
           console.log('Existing profile found, skipping profile creation.')
         }
 
         // Auto-login the user after successful registration
-        if (data.session) {
-          setUser(data.session.user)
-          await fetchProfile(data.session.user.id)
+        if (result.session) {
+          setUser(result.session.user)
+          await fetchProfile(result.session.user.id)
         }
       }
 
-      return { error: null, user: data.user, session: data.session }
+      return { error: null, user: result.user, session: result.session }
     } catch (error) {
       return { error: error as AuthError }
     }
@@ -184,18 +385,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
+      const result = await retryWithBackoff(
+        async () => {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          })
 
-      if (error) {
-        return { error }
-      }
+          if (error) {
+            throw error
+          }
+
+          return data
+        },
+        RETRY_CONFIG,
+        isRetryableError,
+        () => mounted.current
+      )
 
       // Fetch profile but don't redirect here - let the calling component handle it
-      if (data.user) {
-        await fetchProfile(data.user.id)
+      if (result.user) {
+        await fetchProfile(result.user.id)
       }
 
       return { error: null }
@@ -262,14 +472,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: new Error('No user logged in') }
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id)
+      await retryWithBackoff(
+        async () => {
+          const { error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', user.id)
 
-      if (error) {
-        return { error }
-      }
+          if (error) {
+            throw error
+          }
+        },
+        RETRY_CONFIG,
+        isRetryableError,
+        () => mounted.current
+      )
 
       // Update local profile state
       setProfile(prev => prev ? { ...prev, ...updates } : null)
@@ -280,67 +497,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const completeOnboarding = (data: any): Promise<{ error: Error | null }> => {
-    return new Promise(async (resolve) => {
-      try {
-        console.log('🔄 Auth: completeOnboarding called with data:', data)
-        
-        if (!user) {
-          console.error('❌ Auth: No user logged in')
-          return resolve({ error: new Error('No user logged in') })
-        }
-
-        console.log('👤 Auth: Current user ID:', user.id)
-
-        const updates = {
-          has_section8: data.hasSection8 === 'yes',
-          voucher_bedrooms: data.voucherBedrooms || null,
-          preferred_city: data.preferredCity || null,
-          onboarding_completed: true
-        }
-
-        console.log('📝 Auth: Preparing to update profile with:', updates)
-
-        const { data: result, error } = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id)
-          .select() // Return the updated row for verification
-
-        console.log('📋 Auth: Supabase update result:', { result, error })
-
-        if (error) {
-          console.error('❌ Auth: Database update error:', error)
-          console.error('❌ Auth: Error details:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          })
-          return resolve({ error: new Error(`Database error: ${error.message}${error.hint ? ` (${error.hint})` : ''}`) })
-        }
-
-        if (!result || result.length === 0) {
-          console.error('❌ Auth: No rows were updated. This might indicate the user profile does not exist.')
-          return resolve({ error: new Error('Profile update failed: No rows affected. Please contact support.') })
-        }
-
-        console.log('✅ Auth: Profile updated successfully:', result[0])
-
-        // Update local profile state
-        setProfile(prev => prev ? { ...prev, ...updates } : null)
-        
-        console.log('✅ Auth: Local profile state updated')
-        
-        resolve({ error: null })
-      } catch (error) {
-        console.error('❌ Auth: Exception in completeOnboarding:', error)
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : 'Unknown error during profile update'
-        resolve({ error: new Error(`Unexpected error: ${errorMessage}`) })
+  const completeOnboarding = async (data: any): Promise<{ error: Error | null }> => {
+    try {
+      console.log('🔄 Auth: completeOnboarding called with data:', data)
+      
+      if (!user) {
+        console.error('❌ Auth: No user logged in')
+        return { error: new Error('No user logged in') }
       }
-    })
+
+      console.log('👤 Auth: Current user ID:', user.id)
+
+      const updates = {
+        has_section8: data.hasSection8 === 'yes',
+        voucher_bedrooms: data.voucherBedrooms || null,
+        preferred_city: data.preferredCity || null,
+        onboarding_completed: true
+      }
+
+      console.log('📝 Auth: Preparing to update profile with:', updates)
+
+      const result = await retryWithBackoff(
+        async () => {
+          const { data: result, error } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', user.id)
+            .select() // Return the updated row for verification
+
+          if (error) {
+            throw error
+          }
+
+          return result
+        },
+        RETRY_CONFIG,
+        isRetryableError,
+        () => mounted.current
+      )
+
+      console.log('📋 Auth: Supabase update result:', result)
+
+      if (!result || result.length === 0) {
+        console.error('❌ Auth: No rows were updated. This might indicate the user profile does not exist.')
+        return { error: new Error('Profile update failed: No rows affected. Please contact support.') }
+      }
+
+      console.log('✅ Auth: Profile updated successfully:', result[0])
+
+      // Update local profile state
+      setProfile(prev => prev ? { ...prev, ...updates } : null)
+      
+      console.log('✅ Auth: Local profile state updated')
+      
+      return { error: null }
+    } catch (error) {
+      console.error('❌ Auth: Exception in completeOnboarding:', error)
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error during profile update'
+      return { error: new Error(`Unexpected error: ${errorMessage}`) }
+    }
   }
 
   const value: AuthContextType = {
@@ -352,7 +569,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithGoogle,
     signOut,
     updateProfile,
-    completeOnboarding
+    completeOnboarding,
+    refreshProfile
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
