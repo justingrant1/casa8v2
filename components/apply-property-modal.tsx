@@ -37,9 +37,6 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
     lastName: "",
     email: "",
     phone: "",
-    moveInDate: "",
-    monthlyIncome: "",
-    employmentStatus: "",
     hasSection8: false,
     message: "",
   })
@@ -57,9 +54,6 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
         lastName: lastName,
         email: profile.email || user?.email || '',
         phone: profile.phone || '',
-        moveInDate: '',
-        monthlyIncome: '',
-        employmentStatus: '',
         hasSection8: profile.has_section8 || false,
         message: '',
       })
@@ -94,10 +88,7 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
         tenant_name: `${formData.firstName} ${formData.lastName}`,
         tenant_email: formData.email,
         tenant_phone: formData.phone,
-        move_in_date: formData.moveInDate || undefined,
         lease_length_months: 12, // Default to 12 months
-        monthly_income: formData.monthlyIncome ? parseFloat(formData.monthlyIncome) : undefined,
-        employment_status: formData.employmentStatus || undefined,
         has_voucher: formData.hasSection8,
         message: formData.message || undefined,
       }
@@ -115,9 +106,6 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
         lastName: "",
         email: "",
         phone: "",
-        moveInDate: "",
-        monthlyIncome: "",
-        employmentStatus: "",
         hasSection8: false,
         message: "",
       })
@@ -194,47 +182,6 @@ export function ApplyPropertyModal({ isOpen, onClose, property, landlord }: Appl
               onChange={(e) => handleInputChange("phone", e.target.value)}
               required
             />
-          </div>
-
-          {/* Move-in Date */}
-          <div className="space-y-2">
-            <Label htmlFor="moveInDate">Preferred Move-in Date</Label>
-            <Input
-              id="moveInDate"
-              type="date"
-              value={formData.moveInDate}
-              onChange={(e) => handleInputChange("moveInDate", e.target.value)}
-            />
-          </div>
-
-          {/* Monthly Income */}
-          <div className="space-y-2">
-            <Label htmlFor="monthlyIncome">Monthly Income</Label>
-            <Input
-              id="monthlyIncome"
-              type="number"
-              placeholder="Enter monthly income"
-              value={formData.monthlyIncome}
-              onChange={(e) => handleInputChange("monthlyIncome", e.target.value)}
-            />
-          </div>
-
-          {/* Employment Status */}
-          <div className="space-y-2">
-            <Label htmlFor="employmentStatus">Employment Status</Label>
-            <Select value={formData.employmentStatus} onValueChange={(value) => handleInputChange("employmentStatus", value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select employment status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="employed">Employed</SelectItem>
-                <SelectItem value="self-employed">Self-Employed</SelectItem>
-                <SelectItem value="unemployed">Unemployed</SelectItem>
-                <SelectItem value="retired">Retired</SelectItem>
-                <SelectItem value="student">Student</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Section 8 */}
