@@ -317,6 +317,7 @@ export default function SearchPage() {
     const city = searchParams.get('city')
     const state = searchParams.get('state')
     const beds = searchParams.get('bedrooms')
+    const view = searchParams.get('view')
     
     if (city && state) {
       setLocationQuery(`${city}, ${state}`)
@@ -329,6 +330,10 @@ export default function SearchPage() {
     
     if (beds) {
       setBedrooms(beds)
+    }
+    
+    if (view === 'map') {
+      setViewMode('map')
     }
   }, [searchParams])
 

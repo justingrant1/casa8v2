@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, MapPin, Bed, Bath, Square, Heart, TrendingUp, Shield, Users } from "lucide-react"
+import { Search, MapPin, Bed, Bath, Square, Heart, TrendingUp, Shield, Users, Map } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -494,9 +494,21 @@ export default function HomePage() {
                   <Link href="/search" className="flex-shrink-0">
                     <Button
                       size="lg"
-                      className="h-14 px-8 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto"
+                      className="h-14 px-8 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
                     >
+                      <Search className="w-5 h-5" />
                       Search Properties
+                    </Button>
+                  </Link>
+                  
+                  <Link href="/search?view=map" className="flex-shrink-0">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-14 px-6 text-lg font-semibold shadow-lg whitespace-nowrap w-full lg:w-auto border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <Map className="w-5 h-5" />
+                      Map View
                     </Button>
                   </Link>
                 </div>
