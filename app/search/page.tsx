@@ -452,6 +452,25 @@ export default function SearchPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <Button
+                onClick={() => {
+                  // Re-fetch properties with current filters
+                  // This will effectively perform a search
+                  setViewMode("list")
+                }}
+                className="h-14 px-8 bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
+              >
+                <Search className="w-5 h-5" />
+                Search Properties
+              </Button>
+              <Button
+                onClick={() => setViewMode("map")}
+                variant="outline"
+                className="h-14 px-6 border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Map className="w-5 h-5" />
+                Map View
+              </Button>
             </div>
           </div>
         </div>
