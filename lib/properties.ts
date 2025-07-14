@@ -31,7 +31,7 @@ export async function getProperties(options?: {
       .from('properties')
       .select(`
         *,
-        profiles!landlord_id (
+        profiles!properties_landlord_id_fkey (
           full_name,
           email,
           phone
@@ -91,7 +91,7 @@ export async function getPropertyById(id: string) {
       .from('properties')
       .select(`
         *,
-        profiles!landlord_id (
+        profiles!properties_landlord_id_fkey (
           full_name,
           email,
           phone
@@ -127,7 +127,7 @@ export async function searchProperties(searchTerm: string, options?: {
       .from('properties')
       .select(`
         *,
-        profiles!landlord_id (
+        profiles!properties_landlord_id_fkey (
           full_name,
           email,
           phone
