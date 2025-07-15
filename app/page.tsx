@@ -481,11 +481,11 @@ export default function HomePage() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-7xl font-bold mb-8 text-gray-900 leading-tight">
-              Find Your Perfect Rental
-              <span className="text-primary block">Simple. Fast. Reliable.</span>
+              Welcome Home
+              <span className="text-primary block">with Section 8.</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-              Discover thousands of rental properties nationwide. Connect with verified landlords and find your next home with ease. From studios to family homes, we have something for everyone.
+              Discover thousands of <strong>affordable rentals that accept Section 8 vouchers</strong>. Whether you're a tenant seeking your next home or a landlord ready to list, join our community of <strong>over 10,000 verified listings</strong> today.
             </p>
 
             {/* Enhanced Search Bar with backdrop */}
