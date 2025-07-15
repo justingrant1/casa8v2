@@ -105,26 +105,50 @@ export async function getMessagesForUser(userId: string) {
   try {
     console.log('🔍 Fetching messages for user:', userId)
     
-    // Simplified query with timeout protection
-    const { data, error } = await supabase
+    // Try two separate queries instead of OR clause to avoid hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Query timeout')), 3000) // 3 second timeout
+    })
+
+    // Query 1: Messages sent by user
+    const sentQueryPromise = supabase
       .from('messages')
       .select('*')
-      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      .eq('sender_id', userId)
       .order('created_at', { ascending: false })
-      .limit(50) // Reduced limit for faster queries
+      .limit(10)
 
-    if (error) {
+    // Query 2: Messages received by user
+    const receivedQueryPromise = supabase
+      .from('messages')
+      .select('*')
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    const [sentResult, receivedResult] = await Promise.race([
+      Promise.all([sentQueryPromise, receivedQueryPromise]),
+      timeoutPromise
+    ])
+
+    if (sentResult.error || receivedResult.error) {
+      const error = sentResult.error || receivedResult.error
       console.error('❌ Messages query error:', error)
-      if (error.code === 'PGRST116') {
+      if (error?.code === 'PGRST116') {
         console.log('📭 Messages table does not exist - returning empty array')
         return []
       }
-      // Return empty array instead of throwing to prevent infinite loading
       return []
     }
 
-    console.log('✅ Messages fetched successfully:', data?.length || 0, 'messages')
-    return data || []
+    // Combine and sort results
+    const allMessages = [...(sentResult.data || []), ...(receivedResult.data || [])]
+    const sortedMessages = allMessages.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ).slice(0, 20) // Keep only top 20
+
+    console.log('✅ Messages fetched successfully:', sortedMessages.length, 'messages')
+    return sortedMessages
   } catch (error) {
     console.error('❌ Error fetching messages:', error)
     // Return empty array instead of throwing to prevent infinite loading
