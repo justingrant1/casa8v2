@@ -81,15 +81,13 @@ export async function getProperties(options?: {
   bedrooms?: number
   propertyType?: string
 }) {
-  // Get current user session to include in cache key
-  const { data: { session } } = await supabase.auth.getSession()
-  const userId = session?.user?.id || 'anonymous'
-  
-  // Create cache key based on options AND user authentication status
-  const cacheKey = `properties-${userId}-${JSON.stringify(options || {})}`
+  // Simplified cache key - user auth status shouldn't affect property data
+  const cacheKey = `properties-${JSON.stringify(options || {})}`
   
   return getCachedResult(cacheKey, async () => {
     return retryQuery(async () => {
+      console.log('🔍 Fetching properties with options:', options)
+      
       // Use lighter query for list view - don't fetch videos unless needed
       let query = supabase
         .from('properties')
@@ -120,7 +118,7 @@ export async function getProperties(options?: {
       if (options?.maxPrice) {
         query = query.lte('price', options.maxPrice)
       }
-      if (options?.bedrooms) {
+      if (options?.bedrooms !== undefined) {
         query = query.eq('bedrooms', options.bedrooms)
       }
       if (options?.propertyType) {
@@ -142,6 +140,7 @@ export async function getProperties(options?: {
         throw error
       }
 
+      console.log('📊 Properties fetched successfully:', data?.length || 0, 'properties')
       return data as PropertyWithDetails[]
     })
   })

@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   // Use refs to track component mounted state and avoid memory leaks
   const mounted = useRef(true)
-  const profileCache = useRef<Map<string, Profile>>(new Map())
+  const profileCache = useRef<Map<string, { profile: Profile; lastFetched: number }>>(new Map())
   const fetchingProfile = useRef<Set<string>>(new Set())
   const abortController = useRef<AbortController | null>(null)
 
@@ -59,11 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     if (!mounted.current) return null
     
-    // Check cache first
+    // Check cache first, but with shorter cache duration for role-critical data
     const cached = profileCache.current.get(userId)
     if (cached) {
-      setProfile(cached)
-      return cached
+      const cacheAge = Date.now() - cached.lastFetched
+      // Use shorter cache for role-critical data (30 seconds)
+      if (cacheAge < 30000) {
+        setProfile(cached.profile)
+        return cached.profile
+      }
     }
     
     // Check if already fetching
@@ -74,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchingProfile.current.add(userId)
     
     try {
+      console.log('🔍 Fetching fresh profile for user:', userId)
       const result = await simpleRetry(
         async () => {
           const { data, error } = await supabase
@@ -90,15 +95,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       )
 
-      if (mounted.current) {
-        // Cache the result
-        profileCache.current.set(userId, result)
+      if (mounted.current && result) {
+        // Cache the result with timestamp
+        profileCache.current.set(userId, { profile: result, lastFetched: Date.now() })
+        
+        console.log('👤 Profile fetched successfully:', result.email, 'Role:', result.role)
         setProfile(result)
       }
       
       return result
     } catch (error) {
       console.error('Error fetching profile:', error)
+      // Clear cache on error to force fresh fetch next time
+      profileCache.current.delete(userId)
       return null
     } finally {
       fetchingProfile.current.delete(userId)

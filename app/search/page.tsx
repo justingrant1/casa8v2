@@ -17,7 +17,7 @@ import { ContactLandlordModal } from "@/components/contact-landlord-modal"
 import { LocationSearch } from "@/components/location-search"
 import { SimpleMap } from "@/components/simple-map"
 import { UserDropdown } from "@/components/user-dropdown"
-import { getProperties, searchProperties, formatPropertyForFrontend } from "@/lib/properties"
+import { getProperties, searchProperties, formatPropertyForFrontend, clearPropertiesCache } from "@/lib/properties"
 import { getUserLocationByIP, getNearbyProperties, calculateDistance, kmToMiles } from "@/lib/location"
 import { useAuth } from "@/lib/auth"
 import { useFavorites } from "@/lib/favorites-context"
@@ -445,9 +445,14 @@ export default function SearchPage() {
               </div>
               <Button
                 onClick={() => {
-                  // Re-fetch properties with current filters
-                  // This will effectively perform a search
+                  // Clear cache and force fresh fetch
+                  clearPropertiesCache()
                   setViewMode("list")
+                  // Trigger a fresh fetch by updating search query if empty
+                  if (!searchQuery && !locationQuery) {
+                    setSearchQuery(" ") // Trigger useEffect
+                    setTimeout(() => setSearchQuery(""), 100) // Clear it after triggering
+                  }
                 }}
                 className="h-14 px-8 bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
               >
