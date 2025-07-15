@@ -106,9 +106,9 @@ export async function getMessagesForUser(userId: string) {
     console.log('🔍 Fetching messages for user:', userId)
     
     // Test database connection first
-    const { data: testData, error: testError } = await supabase
+    const { count, error: testError } = await supabase
       .from('messages')
-      .select('count(*)')
+      .select('*', { count: 'exact', head: true })
       .limit(1)
 
     if (testError) {
