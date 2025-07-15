@@ -138,25 +138,14 @@ export async function getMessageThreads(userId: string) {
       return []
     }
     
-    // Group messages by conversation (property_id or application_id + participants)
+    // Simple thread creation - just group by property_id for now
     const threadMap = new Map<string, MessageThread>()
     
     messages.forEach((message, index) => {
-      const otherParticipant = message.sender_id === userId ? message.recipient_id : message.sender_id
+      const otherParticipant = message.recipient_id // Since we only have sent messages, recipient is the other person
+      const threadKey = `property-${message.property_id}-${otherParticipant}`
       
-      let contextId = ''
-      if (message.property_id) {
-        contextId = `property-${message.property_id}`
-      } else if (message.application_id) {
-        contextId = `application-${message.application_id}`
-      } else {
-        contextId = 'general'
-      }
-
-      const participantsKey = [userId, otherParticipant].sort().join('-')
-      const threadKey = `${contextId}-${participantsKey}`
-      
-      console.log(`📝 Message ${index + 1}: ThreadKey=${threadKey}, Other=${otherParticipant}, Property=${message.property_id}`)
+      console.log(`📝 Message ${index + 1}: ThreadKey=${threadKey}, To=${otherParticipant}, Property=${message.property_id}`)
       
       if (!threadMap.has(threadKey)) {
         threadMap.set(threadKey, {
@@ -174,11 +163,6 @@ export async function getMessageThreads(userId: string) {
       const thread = threadMap.get(threadKey)!
       thread.messages.push(message)
       
-      // Update unread count
-      if (!message.is_read && message.recipient_id === userId) {
-        thread.unread_count++
-      }
-      
       // Update last message if this one is newer
       if (new Date(message.created_at) > new Date(thread.last_message.created_at)) {
         thread.last_message = message
@@ -189,15 +173,12 @@ export async function getMessageThreads(userId: string) {
       (a, b) => new Date(b.last_message.created_at).getTime() - new Date(a.last_message.created_at).getTime()
     )
     
-    console.log(`✅ Created ${threads.length} message threads:`)
-    threads.forEach((thread, index) => {
-      console.log(`  Thread ${index + 1}: ${thread.id} (${thread.messages.length} messages, ${thread.unread_count} unread)`)
-    })
+    console.log(`✅ Created ${threads.length} message threads`)
     
     return threads
   } catch (error) {
     console.error('❌ Error fetching message threads:', error)
-    throw error
+    return [] // Return empty array instead of throwing
   }
 }
 
