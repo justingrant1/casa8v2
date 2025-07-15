@@ -145,7 +145,18 @@ export async function getMessageThreads(userId: string) {
     
     messages.forEach((message) => {
       const otherParticipant = message.sender_id === userId ? message.recipient_id : message.sender_id
-      const threadKey = `${message.property_id || message.application_id || 'general'}-${[userId, otherParticipant].sort().join('-')}`
+      
+      let contextId = ''
+      if (message.property_id) {
+        contextId = `property-${message.property_id}`
+      } else if (message.application_id) {
+        contextId = `application-${message.application_id}`
+      } else {
+        contextId = 'general'
+      }
+
+      const participantsKey = [userId, otherParticipant].sort().join('-')
+      const threadKey = `${contextId}-${participantsKey}`
       
       if (!threadMap.has(threadKey)) {
         threadMap.set(threadKey, {
