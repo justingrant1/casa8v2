@@ -6,10 +6,10 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('Invalid Supabase URL'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'Supabase anon key is required'),
   
-  // Required EmailJS configuration
-  NEXT_PUBLIC_EMAILJS_SERVICE_ID: z.string().min(1, 'EmailJS service ID is required'),
-  NEXT_PUBLIC_EMAILJS_TEMPLATE_ID: z.string().min(1, 'EmailJS template ID is required'),
-  NEXT_PUBLIC_EMAILJS_PUBLIC_KEY: z.string().min(1, 'EmailJS public key is required'),
+  // Optional EmailJS configuration
+  NEXT_PUBLIC_EMAILJS_SERVICE_ID: z.string().optional(),
+  NEXT_PUBLIC_EMAILJS_TEMPLATE_ID: z.string().optional(),
+  NEXT_PUBLIC_EMAILJS_PUBLIC_KEY: z.string().optional(),
   
   // Optional Google Maps API key
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional(),
@@ -130,6 +130,7 @@ export const isDebugModeEnabled = () => env.NEXT_PUBLIC_ENABLE_DEBUG_MODE
 
 // Service availability checks
 export const hasGoogleMapsApi = () => !!env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+export const hasEmailJsConfig = () => !!(env.NEXT_PUBLIC_EMAILJS_SERVICE_ID && env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID && env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY)
 export const hasOpenAiApi = () => !!env.OPENAI_API_KEY
 export const hasSentryDsn = () => !!env.NEXT_PUBLIC_SENTRY_DSN
 export const hasGoogleAnalytics = () => !!env.NEXT_PUBLIC_GA_ID
@@ -181,7 +182,7 @@ export const logEnvironmentStatus = () => {
   console.log(`  • NODE_ENV: ${env.NODE_ENV}`)
   console.log(`  • Vercel: ${isVercel() ? '✅' : '❌'}`)
   console.log(`  • Supabase: ✅`)
-  console.log(`  • EmailJS: ✅`)
+  console.log(`  • EmailJS: ${hasEmailJsConfig() ? '✅' : '❌'}`)
   console.log(`  • Google Maps: ${hasGoogleMapsApi() ? '✅' : '❌'}`)
   console.log(`  • OpenAI: ${hasOpenAiApi() ? '✅' : '❌'}`)
   console.log(`  • Sentry: ${hasSentryDsn() ? '✅' : '❌'}`)
