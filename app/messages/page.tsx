@@ -44,11 +44,16 @@ export default function MessagesPage() {
         const conversationParam = searchParams.get('conversation')
         const propertyParam = searchParams.get('property')
         
+        console.log('URL params:', { conversationParam, propertyParam }) // Debug log
+        
         if (conversationParam && threads.length > 0) {
-          const conversation = threads.find(t => 
-            t.participants.includes(conversationParam) || 
-            (propertyParam && t.property_id === propertyParam)
-          )
+          console.log('Looking for conversation...') // Debug log
+          const conversation = threads.find(t => {
+            console.log('Thread participants:', t.participants, 'Property:', t.property_id) // Debug log
+            return t.participants.includes(conversationParam) || 
+                   (propertyParam && t.property_id === propertyParam)
+          })
+          console.log('Found conversation:', conversation) // Debug log
           if (conversation) {
             setSelectedConversation(conversation)
           }
@@ -66,6 +71,36 @@ export default function MessagesPage() {
     const interval = setInterval(loadConversations, 5000)
     return () => clearInterval(interval)
   }, [user, searchParams, lastUpdated])
+
+  // Additional effect to handle URL parameters with retry logic
+  useEffect(() => {
+    const conversationParam = searchParams.get('conversation')
+    const propertyParam = searchParams.get('property')
+    
+    if (conversationParam && !selectedConversation && conversations.length > 0) {
+      console.log('Retrying conversation selection...') // Debug log
+      
+      // Retry finding the conversation with a delay
+      const retryFind = () => {
+        const conversation = conversations.find(t => 
+          t.participants.includes(conversationParam) || 
+          (propertyParam && t.property_id === propertyParam)
+        )
+        
+        if (conversation) {
+          console.log('Found conversation on retry:', conversation) // Debug log
+          setSelectedConversation(conversation)
+        } else {
+          console.log('Still no conversation found, will retry on next load') // Debug log
+          // Force a refresh to get the latest conversations
+          setLastUpdated(Date.now())
+        }
+      }
+      
+      // Try again after a short delay
+      setTimeout(retryFind, 1000)
+    }
+  }, [searchParams, selectedConversation, conversations])
 
   // Handle mobile responsiveness
   useEffect(() => {
