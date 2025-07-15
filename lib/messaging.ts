@@ -103,24 +103,106 @@ export async function sendMessage(data: CreateMessageData) {
 
 export async function getMessagesForUser(userId: string) {
   try {
-    console.log('🔍 Fetching messages for user with simplest query:', userId)
-    const { data, error } = await supabase.from('messages').select('*').eq('sender_id', userId)
+    console.log('🔍 Fetching messages for user:', userId)
+    
+    // Simplified query with timeout protection
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(50) // Reduced limit for faster queries
 
     if (error) {
-      console.error('❌ Simplest query error:', error)
+      console.error('❌ Messages query error:', error)
+      if (error.code === 'PGRST116') {
+        console.log('📭 Messages table does not exist - returning empty array')
+        return []
+      }
+      // Return empty array instead of throwing to prevent infinite loading
       return []
     }
-    console.log('✅ Simplest query success:', data)
+
+    console.log('✅ Messages fetched successfully:', data?.length || 0, 'messages')
     return data || []
   } catch (error) {
-    console.error('❌ Error in simplest query:', error)
+    console.error('❌ Error fetching messages:', error)
+    // Return empty array instead of throwing to prevent infinite loading
     return []
   }
 }
 
 export async function getMessageThreads(userId: string) {
-  console.log('🧵 getMessageThreads called, returning empty array for now')
-  return []
+  try {
+    console.log('🧵 Starting to group messages into threads...')
+    const messages = await getMessagesForUser(userId)
+    
+    if (messages.length === 0) {
+      console.log('📭 No messages found for user')
+      return []
+    }
+    
+    // Group messages by conversation (property_id or application_id + participants)
+    const threadMap = new Map<string, MessageThread>()
+    
+    messages.forEach((message, index) => {
+      const otherParticipant = message.sender_id === userId ? message.recipient_id : message.sender_id
+      
+      let contextId = ''
+      if (message.property_id) {
+        contextId = `property-${message.property_id}`
+      } else if (message.application_id) {
+        contextId = `application-${message.application_id}`
+      } else {
+        contextId = 'general'
+      }
+
+      const participantsKey = [userId, otherParticipant].sort().join('-')
+      const threadKey = `${contextId}-${participantsKey}`
+      
+      console.log(`📝 Message ${index + 1}: ThreadKey=${threadKey}, Other=${otherParticipant}, Property=${message.property_id}`)
+      
+      if (!threadMap.has(threadKey)) {
+        threadMap.set(threadKey, {
+          id: threadKey,
+          property_id: message.property_id,
+          application_id: message.application_id,
+          participants: [userId, otherParticipant],
+          last_message: message,
+          unread_count: 0,
+          messages: []
+        })
+        console.log(`✨ Created new thread: ${threadKey}`)
+      }
+      
+      const thread = threadMap.get(threadKey)!
+      thread.messages.push(message)
+      
+      // Update unread count
+      if (!message.is_read && message.recipient_id === userId) {
+        thread.unread_count++
+      }
+      
+      // Update last message if this one is newer
+      if (new Date(message.created_at) > new Date(thread.last_message.created_at)) {
+        thread.last_message = message
+      }
+    })
+    
+    const threads = Array.from(threadMap.values()).sort(
+      (a, b) => new Date(b.last_message.created_at).getTime() - new Date(a.last_message.created_at).getTime()
+    )
+    
+    console.log(`✅ Created ${threads.length} message threads:`)
+    threads.forEach((thread, index) => {
+      console.log(`  Thread ${index + 1}: ${thread.id} (${thread.messages.length} messages, ${thread.unread_count} unread)`)
+    })
+    
+    return threads
+  } catch (error) {
+    console.error('❌ Error fetching message threads:', error)
+    throw error
+  }
 }
 
 export async function getConversation(userId: string, otherUserId: string, propertyId?: string, applicationId?: string) {
