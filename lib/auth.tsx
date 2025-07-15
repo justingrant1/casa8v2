@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { User, AuthError } from '@supabase/supabase-js'
 import { supabase, Profile } from './supabase'
+import { clearPropertiesCache } from './properties'
 
 // Simplified retry function for critical operations only
 const simpleRetry = async <T,>(
@@ -171,6 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Clear all caches
             profileCache.current.clear()
             fetchingProfile.current.clear()
+            clearPropertiesCache()
           } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             console.log('🔑 User signed in or token refreshed')
             setUser(session?.user ?? null)
@@ -303,6 +305,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch profile but don't redirect here - let the calling component handle it
       if (result.user) {
         await fetchProfile(result.user.id)
+        // Clear properties cache when user signs in to ensure fresh data
+        clearPropertiesCache()
       }
 
       return { error: null }

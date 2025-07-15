@@ -81,8 +81,12 @@ export async function getProperties(options?: {
   bedrooms?: number
   propertyType?: string
 }) {
-  // Create cache key based on options
-  const cacheKey = `properties-${JSON.stringify(options || {})}`
+  // Get current user session to include in cache key
+  const { data: { session } } = await supabase.auth.getSession()
+  const userId = session?.user?.id || 'anonymous'
+  
+  // Create cache key based on options AND user authentication status
+  const cacheKey = `properties-${userId}-${JSON.stringify(options || {})}`
   
   return getCachedResult(cacheKey, async () => {
     return retryQuery(async () => {

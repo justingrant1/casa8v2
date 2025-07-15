@@ -8,7 +8,7 @@ import { UserDropdown } from "@/components/user-dropdown"
 import { useAuth } from "@/lib/auth"
 
 interface NavbarProps {
-  currentPage?: 'home' | 'search' | 'favorites' | 'dashboard' | 'list-property'
+  currentPage?: 'home' | 'search' | 'favorites' | 'dashboard' | 'list-property' | 'tenant-finder'
 }
 
 export function Navbar({ currentPage = 'home' }: NavbarProps) {
@@ -72,6 +72,17 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                   Dashboard
                 </Link>
               )}
+              {/* Show TenantFinder only for landlords */}
+              {isLandlord && (
+                <Link 
+                  href="/tenant-finder" 
+                  className={`hover:text-primary transition-colors ${
+                    currentPage === 'tenant-finder' ? 'text-gray-900 font-medium' : 'text-gray-600'
+                  }`}
+                >
+                  Find Tenants
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -94,6 +105,15 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                   </Link>
                 )}
                 
+                {/* Mobile tenant finder button for landlords */}
+                {isLandlord && (
+                  <Link href="/tenant-finder" className="md:hidden">
+                    <Button variant="ghost" size="sm">
+                      Find Tenants
+                    </Button>
+                  </Link>
+                )}
+                
                 {/* Post Listing button for landlords */}
                 {isLandlord && (
                   <Button 
@@ -105,13 +125,6 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                   </Button>
                 )}
                 
-                {/* Loading state for profile */}
-                {isLoadingProfile && (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
-                    <span className="text-sm text-gray-500">Loading...</span>
-                  </div>
-                )}
                 
                 <UserDropdown />
               </>
