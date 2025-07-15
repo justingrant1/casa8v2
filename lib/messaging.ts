@@ -103,31 +103,23 @@ export async function sendMessage(data: CreateMessageData) {
 
 export async function getMessagesForUser(userId: string) {
   try {
-    console.log('🔍 Fetching messages for user:', userId)
+    console.log('🔍 Fetching messages for user via RPC:', userId)
     
-    // Simplified query with timeout protection
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
-      .order('created_at', { ascending: false })
-      .limit(50) // Reduced limit for faster queries
+    const { data, error } = await supabase.rpc('get_all_user_messages', {
+      p_user_id: userId
+    })
 
     if (error) {
-      console.error('❌ Messages query error:', error)
-      if (error.code === 'PGRST116') {
-        console.log('📭 Messages table does not exist - returning empty array')
-        return []
-      }
-      // Return empty array instead of throwing to prevent infinite loading
+      console.error('❌ Messages RPC error:', error)
+      // Return empty array to prevent infinite loading on error
       return []
     }
 
-    console.log('✅ Messages fetched successfully:', data?.length || 0, 'messages')
+    console.log('✅ Messages fetched successfully via RPC:', data?.length || 0, 'messages')
     return data || []
   } catch (error) {
-    console.error('❌ Error fetching messages:', error)
-    // Return empty array instead of throwing to prevent infinite loading
+    console.error('❌ Error fetching messages via RPC:', error)
+    // Return empty array to prevent infinite loading on error
     return []
   }
 }
@@ -145,7 +137,7 @@ export async function getMessageThreads(userId: string) {
     // Group messages by conversation (property_id or application_id + participants)
     const threadMap = new Map<string, MessageThread>()
     
-    messages.forEach((message, index) => {
+    messages.forEach((message: Message, index: number) => {
       const otherParticipant = message.sender_id === userId ? message.recipient_id : message.sender_id
       
       let contextId = ''
