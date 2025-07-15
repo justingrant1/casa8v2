@@ -10,7 +10,7 @@ import { MessageCircle } from 'lucide-react'
 import { getMessageThreads } from '@/lib/messaging'
 
 export default function MessagesPage() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -23,11 +23,11 @@ export default function MessagesPage() {
 
   // Check if user is authenticated
   useEffect(() => {
-    if (!user) {
+    if (!loading && !user) {
       router.push('/login')
       return
     }
-  }, [user, router])
+  }, [user, loading, router])
 
   // Load conversations
   useEffect(() => {
@@ -130,6 +130,14 @@ export default function MessagesPage() {
   const handleBackToConversations = () => {
     setSelectedConversation(null)
     setShowSidebar(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-background items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   if (!user) {
