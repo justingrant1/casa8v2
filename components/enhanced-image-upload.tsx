@@ -113,17 +113,8 @@ export function EnhancedImageUpload({
         clearTimeout(timeout)
         URL.revokeObjectURL(url)
         
-        // Minimum dimensions
-        if (img.width < 400 || img.height < 300) {
-          resolve(`Image dimensions ${img.width}x${img.height} too small. Minimum 400x300 pixels.`)
-          return
-        }
-        
-        // Maximum dimensions
-        if (img.width > 4000 || img.height > 4000) {
-          resolve(`Image dimensions ${img.width}x${img.height} too large. Maximum 4000x4000 pixels.`)
-          return
-        }
+        // No dimension restrictions - allow all image sizes
+        // iPhone photos and high-resolution images are beneficial for property listings
         
         resolve(null)
       }
@@ -318,7 +309,7 @@ export function EnhancedImageUpload({
             Maximum {maxImages} images • {totalImages}/{maxImages} uploaded
           </p>
           <p className="text-xs text-muted-foreground">
-            Minimum 400x300 pixels • Maximum 4000x4000 pixels
+            All image sizes supported • High-resolution images recommended
           </p>
         </div>
       </div>
