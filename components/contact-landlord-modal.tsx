@@ -103,15 +103,15 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
       })
 
       toast.success("Chat started!", {
-        description: "Your initial message has been sent. You can continue the conversation in your messages.",
+        description: "Your initial message has been sent. Redirecting to messages...",
       })
       
-      // Redirect to messages page after a brief delay
+      onClose()
+      
+      // Redirect to messages page after a longer delay to ensure message is processed
       setTimeout(() => {
         window.location.href = `/messages?conversation=${landlord.id}&property=${property.id}`
-      }, 1500)
-      
-      onClose()
+      }, 3000)
     } catch (error: any) {
       console.error('Start chat error:', error)
       toast.error("Failed to start chat", {
