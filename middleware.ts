@@ -1,61 +1,76 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/middleware'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname
-  
-  // Define routes that require authentication (basic check)
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = createClient(request)
+
+  // Refresh session if expired - required for Server Components
+  // https://supabase.com/docs/guides/auth/auth-helpers/nextjs#managing-session-with-middleware
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+
+  // Define protected routes
   const protectedRoutes = [
     '/dashboard',
-    '/list-property', 
+    '/list-property',
     '/admin',
     '/messages',
     '/favorites',
     '/profile',
-    '/settings'
+    '/settings',
   ]
-  
-  // Check if route requires authentication
-  const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
-  
+
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    path.startsWith(route)
+  )
+
   if (isProtectedRoute) {
-    // Check for Supabase auth cookies (they start with sb-)
-    const authCookies = req.cookies.getAll()
-    const hasAuthCookie = authCookies.some(cookie => 
-      cookie.name.startsWith('sb-') && cookie.value && cookie.value.length > 10
-    )
-    
-    // Look for specific auth cookies that indicate a valid session
-    const accessTokenCookie = authCookies.find(cookie => 
-      cookie.name.includes('access-token') && cookie.value
-    )
-    const refreshTokenCookie = authCookies.find(cookie => 
-      cookie.name.includes('refresh-token') && cookie.value
-    )
-    
-    // If no valid auth cookies found, redirect to login
-    if (!hasAuthCookie && !accessTokenCookie && !refreshTokenCookie) {
-      console.log('🔒 Middleware: No valid auth cookies found, redirecting to login')
-      const redirectUrl = new URL('/login', req.url)
+    if (!user) {
+      // If no user, redirect to login
+      const redirectUrl = new URL('/login', request.url)
       redirectUrl.searchParams.set('redirectTo', path)
       return NextResponse.redirect(redirectUrl)
+    } else {
+      // If there is a user, check their role
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (error || !profile) {
+        // Handle error or missing profile
+        console.error('Error fetching profile in middleware:', error)
+        const redirectUrl = new URL('/login', request.url)
+        redirectUrl.searchParams.set('error', 'profile_not_found')
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Role-based access control
+      if (path.startsWith('/dashboard') && profile.role !== 'landlord') {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+      if (path.startsWith('/admin') && profile.role !== 'admin') {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
     }
-    
-    console.log('✅ Middleware: Valid auth cookies found, allowing access to', path)
   }
-  
-  // Let client-side auth handle role-based access control
-  return NextResponse.next()
+
+  return response
 }
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/list-property/:path*',
-    '/admin/:path*',
-    '/messages/:path*',
-    '/favorites/:path*',
-    '/profile/:path*',
-    '/settings/:path*'
-  ]
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this pattern to include more paths.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

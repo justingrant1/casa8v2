@@ -172,64 +172,24 @@ export default function LandlordDashboard() {
   }
 
   useEffect(() => {
-    console.log('🔍 Dashboard useEffect - authLoading:', authLoading, 'user:', !!user, 'user.id:', user?.id, 'profile:', profile?.role, 'initialized:', initialized)
-    
-    // Wait longer before redirecting to allow profile to load
-    if (!authLoading && !user) {
-      console.log('🔍 No user after auth loading complete, redirecting to login')
-      // Add a small delay to ensure auth state is fully settled
-      setTimeout(() => {
-        if (!user) {
-          router.push("/login")
-        }
-      }, 500)
-      return
-    }
-
-    // Check if user is a landlord - only landlords should access dashboard
-    // Wait for profile to load before checking role, but be more patient
-    if (!authLoading && user && profile !== null && profile.role !== 'landlord') {
-      console.log('🔍 User is not landlord, redirecting home. Profile role:', profile.role)
-      // Redirect tenants back to homepage with message
-      toast({
-        title: "Access Denied",
-        description: "This page is only available to landlords",
-        variant: "destructive"
-      })
-      router.push("/")
-      return
-    }
-
-    // Fetch properties when user is available, profile is loaded, and we haven't initialized yet
-    if (user && profile && profile.role === 'landlord' && !authLoading && !initialized) {
-      console.log('🔍 User and profile available, fetching properties for first time. Profile role:', profile.role)
+    // The middleware ensures only authenticated landlords can access this page.
+    // We can safely fetch data here.
+    if (user && !initialized) {
       setInitialized(true)
       fetchLandlordProperties()
       fetchApplications()
       fetchMessages()
     }
-  }, [user, profile, authLoading, initialized])
+  }, [user, initialized])
 
-  // Show loading screen while auth is loading or profile is still loading
-  if (authLoading || (user && profile === null)) {
+  // Show a simplified loading screen.
+  // The middleware handles unauthenticated access, so we don't need to check for !user here.
+  if (authLoading || (user && !profile)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">
-            {authLoading ? 'Loading authentication...' : 'Loading profile...'}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Only show "not authenticated" if auth loading is complete and definitely no user
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Redirecting to login...</p>
+          <p className="text-muted-foreground">Loading Dashboard...</p>
         </div>
       </div>
     )
