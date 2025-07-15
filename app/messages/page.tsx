@@ -34,41 +34,62 @@ export default function MessagesPage() {
     async function loadConversations() {
       if (!user) return
       
+      console.log('🔄 Starting conversation load for user:', user.id) // Debug log
+      
       try {
         setIsLoading(true)
-        const threads = await getMessageThreads(user.id)
-        console.log('Loaded threads:', threads) // Debug log
+        
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Conversation loading timeout')), 10000)
+        })
+        
+        const threadsPromise = getMessageThreads(user.id)
+        
+        const threads = await Promise.race([threadsPromise, timeoutPromise])
+        console.log('✅ Loaded threads:', threads) // Debug log
         setConversations(threads)
         
         // Auto-select conversation from URL params
         const conversationParam = searchParams.get('conversation')
         const propertyParam = searchParams.get('property')
         
-        console.log('URL params:', { conversationParam, propertyParam }) // Debug log
+        console.log('🔍 URL params:', { conversationParam, propertyParam }) // Debug log
         
-        if (conversationParam && threads.length > 0) {
-          console.log('Looking for conversation...') // Debug log
-          const conversation = threads.find(t => {
-            console.log('Thread participants:', t.participants, 'Property:', t.property_id) // Debug log
+        if (conversationParam && Array.isArray(threads) && threads.length > 0) {
+          console.log('🔍 Looking for conversation...') // Debug log
+          const conversation = threads.find((t: any) => {
+            console.log('🧵 Thread participants:', t.participants, 'Property:', t.property_id) // Debug log
             return t.participants.includes(conversationParam) || 
                    (propertyParam && t.property_id === propertyParam)
           })
-          console.log('Found conversation:', conversation) // Debug log
+          console.log('✅ Found conversation:', conversation) // Debug log
           if (conversation) {
             setSelectedConversation(conversation)
           }
         }
       } catch (error) {
-        console.error('Error loading conversations:', error)
+        console.error('❌ Error loading conversations:', error)
+        // Continue anyway to show empty state
+        setConversations([])
       } finally {
+        console.log('⏹️ Conversation loading finished') // Debug log
         setIsLoading(false)
       }
     }
 
-    loadConversations()
+    // Only load if we have a user
+    if (user) {
+      loadConversations()
+    }
     
-    // Auto-refresh conversations every 5 seconds to catch new messages
-    const interval = setInterval(loadConversations, 5000)
+    // Auto-refresh conversations every 10 seconds to catch new messages
+    const interval = setInterval(() => {
+      if (user) {
+        loadConversations()
+      }
+    }, 10000)
+    
     return () => clearInterval(interval)
   }, [user, searchParams, lastUpdated])
 
