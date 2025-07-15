@@ -104,7 +104,7 @@ export function ConversationsSidebar({
     const searchLower = searchTerm.toLowerCase()
     const userName = conversation.otherUser?.name?.toLowerCase() || ''
     const propertyTitle = conversation.property?.title?.toLowerCase() || ''
-    const lastMessageContent = conversation.last_message?.message_text?.toLowerCase() || ''
+    const lastMessageContent = conversation.last_message?.content?.toLowerCase() || ''
     
     return userName.includes(searchLower) || 
            propertyTitle.includes(searchLower) || 
@@ -219,7 +219,7 @@ export function ConversationsSidebar({
                     
                     <p className="text-sm text-muted-foreground truncate">
                       {conversation.last_message.sender_id === currentUserId ? 'You: ' : ''}
-                      {conversation.last_message.message_text}
+                      {conversation.last_message.content}
                     </p>
                   </div>
                 </div>
