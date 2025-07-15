@@ -28,9 +28,10 @@ interface MessagePanelProps {
   conversation: any
   currentUserId: string
   onBack?: () => void
+  onMessageSent?: () => void
 }
 
-export function MessagePanel({ conversation, currentUserId, onBack }: MessagePanelProps) {
+export function MessagePanel({ conversation, currentUserId, onBack, onMessageSent }: MessagePanelProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [messages, setMessages] = useState<any[]>([])
@@ -194,6 +195,7 @@ export function MessagePanel({ conversation, currentUserId, onBack }: MessagePan
       })
 
       setNewMessage('')
+      onMessageSent?.()
     } catch (error) {
       console.error('Error sending message:', error)
     } finally {

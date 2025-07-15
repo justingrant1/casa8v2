@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ConversationsSidebar } from '@/components/conversations-sidebar'
-import { MessagePanel } from '@/components/message-panel'
+import { ConversationsSidebar } from '../../components/conversations-sidebar'
+import { MessagePanel } from '../../components/message-panel'
 import { Card, CardContent } from '@/components/ui/card'
 import { MessageCircle } from 'lucide-react'
 import { getMessageThreads } from '@/lib/messaging'
@@ -18,6 +18,7 @@ export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState(Date.now())
   const [showSidebar, setShowSidebar] = useState(true)
 
   // Check if user is authenticated
@@ -64,7 +65,7 @@ export default function MessagesPage() {
     // Auto-refresh conversations every 5 seconds to catch new messages
     const interval = setInterval(loadConversations, 5000)
     return () => clearInterval(interval)
-  }, [user, searchParams])
+  }, [user, searchParams, lastUpdated])
 
   // Handle mobile responsiveness
   useEffect(() => {
@@ -128,6 +129,7 @@ export default function MessagesPage() {
             conversation={selectedConversation}
             currentUserId={user.id}
             onBack={isMobile ? handleBackToConversations : undefined}
+            onMessageSent={() => setLastUpdated(Date.now())}
           />
         ) : (
           <div className="flex-1 flex items-center justify-center">
