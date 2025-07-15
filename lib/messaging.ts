@@ -103,83 +103,24 @@ export async function sendMessage(data: CreateMessageData) {
 
 export async function getMessagesForUser(userId: string) {
   try {
-    console.log('🔍 Fetching messages for user:', userId)
-    
-    // Start with just sent messages to test if basic query works
-    const { data: sentMessages, error: sentError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('sender_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10)
+    console.log('🔍 Fetching messages for user with simplest query:', userId)
+    const { data, error } = await supabase.from('messages').select('*').eq('sender_id', userId)
 
-    if (sentError) {
-      console.error('❌ Sent messages query error:', sentError)
+    if (error) {
+      console.error('❌ Simplest query error:', error)
       return []
     }
-
-    console.log('✅ Sent messages fetched successfully:', sentMessages?.length || 0, 'messages')
-    
-    // For now, return just sent messages to test
-    return sentMessages || []
+    console.log('✅ Simplest query success:', data)
+    return data || []
   } catch (error) {
-    console.error('❌ Error fetching messages:', error)
+    console.error('❌ Error in simplest query:', error)
     return []
   }
 }
 
 export async function getMessageThreads(userId: string) {
-  try {
-    console.log('🧵 Starting to group messages into threads...')
-    const messages = await getMessagesForUser(userId)
-    
-    if (messages.length === 0) {
-      console.log('📭 No messages found for user')
-      return []
-    }
-    
-    // Simple thread creation - just group by property_id for now
-    const threadMap = new Map<string, MessageThread>()
-    
-    messages.forEach((message, index) => {
-      const otherParticipant = message.recipient_id // Since we only have sent messages, recipient is the other person
-      const threadKey = `property-${message.property_id}-${otherParticipant}`
-      
-      console.log(`📝 Message ${index + 1}: ThreadKey=${threadKey}, To=${otherParticipant}, Property=${message.property_id}`)
-      
-      if (!threadMap.has(threadKey)) {
-        threadMap.set(threadKey, {
-          id: threadKey,
-          property_id: message.property_id,
-          application_id: message.application_id,
-          participants: [userId, otherParticipant],
-          last_message: message,
-          unread_count: 0,
-          messages: []
-        })
-        console.log(`✨ Created new thread: ${threadKey}`)
-      }
-      
-      const thread = threadMap.get(threadKey)!
-      thread.messages.push(message)
-      
-      // Update last message if this one is newer
-      if (new Date(message.created_at) > new Date(thread.last_message.created_at)) {
-        thread.last_message = message
-      }
-    })
-    
-    const threads = Array.from(threadMap.values()).sort(
-      (a, b) => new Date(b.last_message.created_at).getTime() - new Date(a.last_message.created_at).getTime()
-    )
-    
-    console.log(`✅ Created ${threads.length} message threads`)
-    
-    return threads
-  } catch (error) {
-    console.error('❌ Error fetching message threads:', error)
-    return [] // Return empty array instead of throwing
-  }
+  console.log('🧵 getMessageThreads called, returning empty array for now')
+  return []
 }
 
 export async function getConversation(userId: string, otherUserId: string, propertyId?: string, applicationId?: string) {
