@@ -8,7 +8,7 @@ export interface Message {
   sender_id: string
   recipient_id: string
   subject?: string
-  content: string
+  message_text: string // Changed from content to message_text to match database schema
   message_type: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
   is_read: boolean
   created_at: string
@@ -38,7 +38,7 @@ export interface CreateMessageData {
   application_id?: string
   recipient_id: string
   subject?: string
-  content: string
+  message_text: string // Changed from content to message_text
   message_type?: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
 }
 
@@ -65,7 +65,7 @@ export async function sendMessage(data: CreateMessageData) {
       application_id: data.application_id,
       recipient_id: data.recipient_id,
       subject: data.subject,
-      content: data.content,
+      message_text: data.message_text,
       sender_id: user.id,
       message_type: data.message_type || 'general'
     }
@@ -105,12 +105,30 @@ export async function getMessagesForUser(userId: string) {
   try {
     console.log('🔍 Fetching messages for user:', userId)
     
+    // Test database connection first
+    const { data: testData, error: testError } = await supabase
+      .from('messages')
+      .select('count(*)')
+      .limit(1)
+
+    if (testError) {
+      console.error('❌ Database connection error:', testError)
+      if (testError.code === 'PGRST116') {
+        console.log('📭 Messages table does not exist - returning empty array')
+        return []
+      }
+      throw testError
+    }
+
+    console.log('✅ Database connection successful')
+    
     // Simplified query without complex joins - just get the messages first
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: false })
+      .limit(100) // Add limit to prevent huge queries
 
     if (error) {
       console.error('❌ Messages query error:', error)
@@ -121,7 +139,8 @@ export async function getMessagesForUser(userId: string) {
     return data || []
   } catch (error) {
     console.error('❌ Error fetching messages:', error)
-    throw error
+    // Return empty array instead of throwing to prevent infinite loading
+    return []
   }
 }
 
@@ -346,7 +365,7 @@ async function createMessageNotification(message: any) {
 
     console.log('Notification would be created:', {
       title: `New message from ${senderName}`,
-      message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+      message: `${subject}: ${message.message_text.substring(0, 100)}${message.message_text.length > 100 ? '...' : ''}`,
     })
 
     // Temporarily disabled due to permission issues
@@ -398,7 +417,7 @@ async function sendMessageEmail(message: any) {
       to: recipientName,
       from: senderName,
       subject: propertyTitle,
-      content: message.content.substring(0, 100) + '...'
+      content: message.message_text.substring(0, 100) + '...'
     })
 
     // Send email notification via EmailJS
@@ -408,7 +427,7 @@ async function sendMessageEmail(message: any) {
       tenant_name: senderName,
       tenant_email: message.sender?.email || '',
       property_title: propertyTitle,
-      message: message.content
+      message: message.message_text
     })
 
     console.log('Email notification sent successfully')
@@ -439,7 +458,7 @@ export async function contactLandlord(data: {
       property_id: data.property_id,
       recipient_id: data.landlord_id,
       subject: data.subject,
-      content: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
+      message_text: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
       sender_id: user.id,
       message_type: 'inquiry'
     }
