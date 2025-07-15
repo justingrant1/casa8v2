@@ -1,15 +1,20 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Send, Circle, Loader2 } from "lucide-react"
-import { useAuth } from "@/lib/auth"
-import { getConversation, markMessageAsRead, sendMessage } from "@/lib/messaging"
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Card, CardContent } from '@/components/ui/card'
+import { ArrowLeft, Send, Circle, Eye, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth'
+import { 
+  getConversation, 
+  markMessageAsRead, 
+  sendMessage as sendMessageFunction 
+} from '@/lib/messaging'
 import { 
   realtimeMessaging, 
   formatLastSeen, 
@@ -17,24 +22,17 @@ import {
   type RealtimeMessage, 
   type TypingIndicator, 
   type OnlineUser 
-} from "@/lib/realtime-messaging"
+} from '@/lib/realtime-messaging'
 
-interface RealtimeChatProps {
-  propertyId: string
-  participantId: string
-  participantName: string
-  participantAvatar?: string
-  onClose?: () => void
+interface MessagePanelProps {
+  conversation: any
+  currentUserId: string
+  onBack?: () => void
 }
 
-export function RealtimeChat({ 
-  propertyId, 
-  participantId, 
-  participantName, 
-  participantAvatar,
-  onClose 
-}: RealtimeChatProps) {
+export function MessagePanel({ conversation, currentUserId, onBack }: MessagePanelProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -45,7 +43,10 @@ export function RealtimeChat({
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
-  
+
+  const otherUser = conversation.otherUser
+  const property = conversation.property
+
   // Scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -58,12 +59,16 @@ export function RealtimeChat({
     async function loadMessages() {
       try {
         setIsLoading(true)
-        const data = await getConversation(user!.id, participantId, propertyId)
+        const data = await getConversation(
+          currentUserId, 
+          otherUser.id, 
+          property?.id
+        )
         setMessages(data)
         
         // Mark messages as read
         const unreadMessages = data.filter((msg: any) => 
-          msg.recipient_id === user?.id && !msg.read_at
+          msg.recipient_id === currentUserId && !msg.read_at
         )
         for (const msg of unreadMessages) {
           await markMessageAsRead(msg.id)
@@ -75,26 +80,26 @@ export function RealtimeChat({
       }
     }
 
-    if (user?.id) {
+    if (user?.id && otherUser?.id) {
       loadMessages()
     }
-  }, [propertyId, participantId, user])
+  }, [conversation, currentUserId, otherUser?.id, property?.id, user])
 
   // Setup real-time subscriptions
   useEffect(() => {
-    if (!user) return
+    if (!user || !property?.id) return
 
     // Setup presence tracking
     const cleanupPresence = realtimeMessaging.setupPresenceTracking()
 
     // Subscribe to new messages
     const unsubscribeMessages = realtimeMessaging.subscribeToMessages(
-      propertyId,
+      property.id,
       (message) => {
         setMessages(prev => [...prev, message])
         
         // Mark as read if we're the recipient
-        if (message.recipient_id === user.id) {
+        if (message.recipient_id === currentUserId) {
           markMessageAsRead(message.id)
         }
         
@@ -109,24 +114,24 @@ export function RealtimeChat({
 
     // Subscribe to typing indicators
     const unsubscribeTyping = realtimeMessaging.subscribeToTypingIndicators(
-      propertyId,
+      property.id,
       (indicators) => {
         // Filter out our own typing indicator
-        const otherUsersTyping = indicators.filter(ind => ind.user_id !== user.id)
+        const otherUsersTyping = indicators.filter(ind => ind.user_id !== currentUserId)
         setTypingUsers(otherUsersTyping)
       }
     )
 
     // Subscribe to online status
     const unsubscribeOnline = realtimeMessaging.subscribeToOnlineStatus(
-      [participantId],
+      [otherUser.id],
       (users) => {
         setOnlineStatus(users)
       }
     )
 
     // Load initial online status
-    realtimeMessaging.getOnlineStatus([participantId]).then(setOnlineStatus)
+    realtimeMessaging.getOnlineStatus([otherUser.id]).then(setOnlineStatus)
 
     return () => {
       cleanupPresence()
@@ -134,7 +139,7 @@ export function RealtimeChat({
       unsubscribeTyping()
       unsubscribeOnline()
     }
-  }, [propertyId, participantId, user])
+  }, [property?.id, otherUser?.id, currentUserId, user])
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -146,7 +151,7 @@ export function RealtimeChat({
     const value = e.target.value
     setNewMessage(value)
 
-    if (!user) return
+    if (!user || !property?.id) return
 
     // Clear existing timeout
     if (typingTimeoutRef.current) {
@@ -156,13 +161,13 @@ export function RealtimeChat({
     // Set typing status
     if (value.trim() && !isTyping) {
       setIsTyping(true)
-      realtimeMessaging.setTypingStatus(propertyId, participantId, true)
+      realtimeMessaging.setTypingStatus(property.id, otherUser.id, true)
     }
 
     // Clear typing status after 1 second of no typing
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false)
-      realtimeMessaging.setTypingStatus(propertyId, participantId, false)
+      realtimeMessaging.setTypingStatus(property.id, otherUser.id, false)
     }, 1000)
   }
 
@@ -177,13 +182,13 @@ export function RealtimeChat({
     try {
       // Clear typing status immediately
       setIsTyping(false)
-      realtimeMessaging.setTypingStatus(propertyId, participantId, false)
+      realtimeMessaging.setTypingStatus(property.id, otherUser.id, false)
       
       // Send message through our messaging system
-      await sendMessage({
-        recipient_id: participantId,
-        property_id: propertyId,
-        subject: `Message about property`,
+      await sendMessageFunction({
+        recipient_id: otherUser.id,
+        property_id: property.id,
+        subject: `Message about ${property.title}`,
         content: newMessage.trim(),
         message_type: 'inquiry'
       })
@@ -197,35 +202,44 @@ export function RealtimeChat({
   }
 
   // Get participant's online status
-  const participantOnline = onlineStatus.find(u => u.user_id === participantId)
+  const participantOnline = onlineStatus.find(u => u.user_id === otherUser.id)
   const isParticipantOnline = participantOnline?.is_online
   const lastSeen = participantOnline?.last_seen_at
 
   // Check if participant is typing
-  const participantTyping = typingUsers.some(t => t.user_id === participantId)
+  const participantTyping = typingUsers.some(t => t.user_id === otherUser.id)
 
-  if (!user) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="p-6 text-center">
-          <p>Please log in to use chat</p>
-        </CardContent>
-      </Card>
-    )
+  const handleViewProperty = () => {
+    if (property?.id) {
+      router.push(`/property/${property.id}`)
+    }
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto h-[600px] flex flex-col">
-      {/* Chat Header */}
-      <CardHeader className="pb-3 border-b">
+    <div className="h-full flex flex-col bg-background">
+      {/* Header */}
+      <div className="p-4 border-b bg-background">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            {onBack && (
+              <Button variant="ghost" size="sm" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            
             <Avatar className="h-10 w-10">
-              <AvatarImage src={participantAvatar} />
-              <AvatarFallback>{participantName.charAt(0).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={otherUser?.avatar} />
+              <AvatarFallback>
+                {otherUser?.name
+                  ?.split(' ')
+                  .map((n: string) => n[0])
+                  .join('')
+                  .toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold">{participantName}</h3>
+            
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold truncate">{otherUser?.name || 'Unknown User'}</h2>
               <div className="flex items-center space-x-2 text-sm">
                 <div className="flex items-center space-x-1">
                   <Circle 
@@ -254,13 +268,38 @@ export function RealtimeChat({
               </div>
             </div>
           </div>
-          {onClose && (
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              ×
+
+          {property && (
+            <Button variant="outline" size="sm" onClick={handleViewProperty}>
+              <Eye className="h-4 w-4 mr-2" />
+              View Property
             </Button>
           )}
         </div>
-      </CardHeader>
+
+        {/* Property Context */}
+        {property && (
+          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-sm">{property.title}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {property.address}, {property.city}, {property.state}
+                </p>
+              </div>
+              {property.image && (
+                <div className="w-12 h-12 bg-muted rounded-md overflow-hidden">
+                  <img 
+                    src={property.image} 
+                    alt={property.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Messages Area */}
       <ScrollArea className="flex-1 p-4">
@@ -276,7 +315,7 @@ export function RealtimeChat({
         ) : (
           <div className="space-y-4">
             {messages.map((message: any) => {
-              const isOwnMessage = message.sender_id === user?.id
+              const isOwnMessage = message.sender_id === currentUserId
               return (
                 <div
                   key={message.id}
@@ -335,6 +374,6 @@ export function RealtimeChat({
           </Button>
         </form>
       </div>
-    </Card>
+    </div>
   )
 }
