@@ -100,6 +100,7 @@ export async function uploadPropertyImages(propertyId: string, images: File[]) {
 
 export async function uploadPropertyVideos(propertyId: string, videos: File[]) {
   const uploadedVideos = []
+  const errors = []
   
   for (let i = 0; i < videos.length; i++) {
     const video = videos[i]
@@ -108,20 +109,34 @@ export async function uploadPropertyVideos(propertyId: string, videos: File[]) {
     const filePath = `videos/${fileName}`
 
     try {
+      console.log(`Uploading video ${i + 1}/${videos.length}: ${video.name}`)
+      
       // Upload video to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('property-videos')
-        .upload(filePath, video)
+        .upload(filePath, video, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (uploadError) {
         console.error('Error uploading video:', uploadError)
+        errors.push(`Failed to upload ${video.name}: ${uploadError.message}`)
         continue
       }
+
+      console.log(`Successfully uploaded ${video.name} to storage`)
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('property-videos')
         .getPublicUrl(filePath)
+
+      if (!urlData.publicUrl) {
+        console.error('Failed to get public URL for uploaded video')
+        errors.push(`Failed to get public URL for ${video.name}`)
+        continue
+      }
 
       // Save video record to database
       const { data: videoRecord, error: dbError } = await supabase
@@ -138,17 +153,24 @@ export async function uploadPropertyVideos(propertyId: string, videos: File[]) {
 
       if (dbError) {
         console.error('Error saving video record:', dbError)
+        errors.push(`Failed to save ${video.name} to database: ${dbError.message}`)
         continue
       }
 
+      console.log(`Successfully saved ${video.name} to database`)
       uploadedVideos.push(videoRecord)
     } catch (error) {
       console.error('Error processing video:', error)
+      errors.push(`Failed to process ${video.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       continue
     }
   }
 
-  return uploadedVideos
+  if (errors.length > 0) {
+    console.warn('Video upload completed with errors:', errors)
+  }
+
+  return { uploadedVideos, errors }
 }
 
 export async function createPropertyWithImages(propertyData: CreatePropertyData, images: File[] = [], videos: File[] = []) {
@@ -195,11 +217,17 @@ export async function createPropertyWithImages(propertyData: CreatePropertyData,
 
     // Upload videos if any
     let uploadedVideos = []
+    let videoErrors = []
     if (videos.length > 0) {
       console.log(`Uploading ${videos.length} videos...`)
       try {
-        uploadedVideos = await uploadPropertyVideos(property.id, videos)
+        const videoResult = await uploadPropertyVideos(property.id, videos)
+        uploadedVideos = videoResult.uploadedVideos
+        videoErrors = videoResult.errors
         console.log('Videos uploaded successfully:', uploadedVideos.length)
+        if (videoErrors.length > 0) {
+          console.warn('Some videos failed to upload:', videoErrors)
+        }
       } catch (videoError) {
         console.error('Error uploading videos (continuing anyway):', videoError)
         // Continue without videos rather than failing completely
@@ -482,9 +510,12 @@ export async function updatePropertyWithImages(
     if (videos.length > 0) {
       console.log(`Uploading ${videos.length} new videos...`)
       try {
-        const newVideos = await uploadPropertyVideos(propertyId, videos)
-        uploadedVideos = newVideos
+        const videoResult = await uploadPropertyVideos(propertyId, videos)
+        uploadedVideos = videoResult.uploadedVideos
         console.log('New videos uploaded successfully:', uploadedVideos.length)
+        if (videoResult.errors.length > 0) {
+          console.warn('Some new videos failed to upload:', videoResult.errors)
+        }
       } catch (videoError) {
         console.error('Error uploading new videos (continuing anyway):', videoError)
       }
