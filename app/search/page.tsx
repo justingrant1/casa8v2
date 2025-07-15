@@ -448,11 +448,14 @@ export default function SearchPage() {
                   // Clear cache and force fresh fetch
                   clearPropertiesCache()
                   setViewMode("list")
-                  // Trigger a fresh fetch by updating search query if empty
-                  if (!searchQuery && !locationQuery) {
-                    setSearchQuery(" ") // Trigger useEffect
-                    setTimeout(() => setSearchQuery(""), 100) // Clear it after triggering
-                  }
+                  // Force a fresh fetch by setting loading state
+                  setPropertiesLoading(true)
+                  // Trigger a fresh properties fetch
+                  setTimeout(() => {
+                    // This will trigger the useEffect to refetch
+                    setSearchQuery(prev => prev === "" ? " " : "")
+                    setTimeout(() => setSearchQuery(""), 50)
+                  }, 100)
                 }}
                 className="h-14 px-8 bg-gray-900 hover:bg-gray-800 text-white font-medium flex items-center gap-2"
               >

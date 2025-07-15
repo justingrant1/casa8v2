@@ -13,7 +13,7 @@ interface NavbarProps {
 
 export function Navbar({ currentPage = 'home' }: NavbarProps) {
   const router = useRouter()
-  const { user, profile } = useAuth()
+  const { user, profile, loading } = useAuth()
 
   const handlePostListing = () => {
     if (user) {
@@ -24,8 +24,11 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
   }
 
   const isLandlord = profile?.role === 'landlord'
-  const isLoadingProfile = user && !profile
+  const isLoadingProfile = user && !profile && !loading
   const isTenant = profile?.role === 'tenant'
+  
+  // Show loading state when we have a user but no profile yet
+  const showLoadingState = user && !profile && !loading
 
   return (
     <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
