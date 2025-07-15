@@ -97,7 +97,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
         property_id: property.id,
         landlord_id: landlord.id,
         subject: `Inquiry about ${property.title}`,
-        message: `Hi ${landlord.name},\n\nI'm interested in your property "${property.title}" and would like to chat about it.\n\nThank you!`,
+        message: emailForm.message,
         tenant_name: profile?.full_name || user.email || 'Anonymous',
         tenant_email: user.email || '',
       })
@@ -106,9 +106,9 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
         description: "Your initial message has been sent. You can continue the conversation in your messages.",
       })
       
-      // Redirect to dashboard messages tab after a brief delay
+      // Redirect to messages page after a brief delay
       setTimeout(() => {
-        window.location.href = '/dashboard?tab=messages'
+        window.location.href = '/messages'
       }, 1500)
       
       onClose()
@@ -168,7 +168,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
             </TabsList>
 
             <TabsContent value="chat" className="space-y-4 mt-6">
-              <div className="text-center space-y-4">
+              <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold">Start a Chat</h3>
                   <p className="text-muted-foreground">Send an instant message to {landlord.name}</p>
@@ -176,6 +176,16 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground mb-2">You'll be connected with:</p>
                   <p className="font-medium">{landlord.name}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="chat-message">Your Message</Label>
+                  <Textarea
+                    id="chat-message"
+                    value={emailForm.message}
+                    onChange={(e) => setEmailForm((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Type your message here..."
+                    rows={4}
+                  />
                 </div>
                 <Button onClick={startChat} className="w-full" disabled={isLoading}>
                   {isLoading ? (

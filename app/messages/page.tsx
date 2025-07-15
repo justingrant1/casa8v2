@@ -36,6 +36,7 @@ export default function MessagesPage() {
       try {
         setIsLoading(true)
         const threads = await getMessageThreads(user.id)
+        console.log('Loaded threads:', threads) // Debug log
         setConversations(threads)
         
         // Auto-select conversation from URL params
@@ -59,6 +60,10 @@ export default function MessagesPage() {
     }
 
     loadConversations()
+    
+    // Auto-refresh conversations every 5 seconds to catch new messages
+    const interval = setInterval(loadConversations, 5000)
+    return () => clearInterval(interval)
   }, [user, searchParams])
 
   // Handle mobile responsiveness
