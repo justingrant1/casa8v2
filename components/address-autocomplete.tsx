@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MapPin, Loader2 } from "lucide-react"
+import { hasGoogleMapsApi } from "@/lib/env"
 
 export interface AddressData {
   formatted_address: string
@@ -48,15 +49,26 @@ export function AddressAutocomplete({
 
   useEffect(() => {
     const initializeGoogleMaps = async () => {
-      if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-        console.error("Google Maps API key not found")
+      // Check if Google Maps API is available
+      if (!hasGoogleMapsApi()) {
+        console.log("Google Maps API not available, using manual entry mode")
+        setIsManualEntry(true)
+        setIsGoogleLoaded(false)
+        return
+      }
+
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      if (!apiKey) {
+        console.log("Google Maps API key not found, using manual entry mode")
+        setIsManualEntry(true)
+        setIsGoogleLoaded(false)
         return
       }
 
       try {
         setIsLoading(true)
         const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+          apiKey: apiKey,
           version: "weekly",
           libraries: ["places"]
         })
@@ -65,6 +77,8 @@ export function AddressAutocomplete({
         setIsGoogleLoaded(true)
       } catch (error) {
         console.error("Error loading Google Maps:", error)
+        setIsManualEntry(true)
+        setIsGoogleLoaded(false)
       } finally {
         setIsLoading(false)
       }
@@ -204,7 +218,11 @@ export function AddressAutocomplete({
         <p className="text-xs text-muted-foreground">Loading Google Maps...</p>
       )}
       
-      {!isGoogleLoaded && !isLoading && (
+      {!isGoogleLoaded && !isLoading && !hasGoogleMapsApi() && (
+        <p className="text-xs text-muted-foreground">Google Maps API not configured. Using manual entry mode.</p>
+      )}
+      
+      {!isGoogleLoaded && !isLoading && hasGoogleMapsApi() && (
         <p className="text-xs text-red-500">Failed to load Google Maps. Please refresh the page.</p>
       )}
     </div>

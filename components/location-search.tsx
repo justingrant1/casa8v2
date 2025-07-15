@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader } from '@googlemaps/js-api-loader'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
+import { hasGoogleMapsApi } from '@/lib/env'
 
 // Declare Google Maps types
 declare global {
@@ -67,9 +68,23 @@ export function LocationSearch({
 
   useEffect(() => {
     const initializeAutocomplete = async () => {
+      // Check if Google Maps API is available
+      if (!hasGoogleMapsApi()) {
+        console.log('Google Maps API key not available, using basic input field')
+        setIsLoaded(true)
+        return
+      }
+
       try {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        if (!apiKey) {
+          console.log('Google Maps API key is empty, using basic input field')
+          setIsLoaded(true)
+          return
+        }
+
         const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+          apiKey: apiKey,
           version: 'weekly',
           libraries: ['places']
         })
@@ -133,13 +148,15 @@ export function LocationSearch({
         }
       } catch (error) {
         console.error('Error loading Google Maps:', error)
+        // Fall back to basic input field on error
+        setIsLoaded(true)
       }
     }
 
     initializeAutocomplete()
 
     return () => {
-      if (autocompleteRef.current) {
+      if (autocompleteRef.current && window.google) {
         google.maps.event.clearInstanceListeners(autocompleteRef.current)
       }
     }
@@ -150,8 +167,29 @@ export function LocationSearch({
       e.preventDefault()
       // If no place was selected from autocomplete, perform a basic search with the input value
       if (inputRef.current?.value) {
+        const inputValue = inputRef.current.value.trim()
+        
+        // Try to parse basic city, state format when Google Maps API is not available
+        if (!hasGoogleMapsApi() && onLocationSelect) {
+          const parts = inputValue.split(',')
+          if (parts.length >= 2) {
+            const city = parts[0].trim()
+            const state = parts[1].trim()
+            
+            // Call the callback with basic location data (no coordinates)
+            onLocationSelect({
+              address: inputValue,
+              city: city,
+              state: state,
+              coordinates: { lat: 0, lng: 0 } // Default coordinates when API is not available
+            })
+            return
+          }
+        }
+        
+        // Fallback to general search
         const searchParams = new URLSearchParams()
-        searchParams.append('q', inputRef.current.value)
+        searchParams.append('q', inputValue)
         router.push(`/search?${searchParams.toString()}`)
       }
     }
