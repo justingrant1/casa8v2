@@ -7,16 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, X, Star, Loader2, AlertTriangle, Check, Move } from "lucide-react"
+import { Upload, X, Star, Loader2, AlertTriangle, Move } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-
-interface ImageFile extends File {
-  id: string
-  isUploading: boolean
-  uploadProgress: number
-  error?: string
-  isMain?: boolean
-}
 
 interface EnhancedImageUploadProps {
   images: File[]
@@ -44,8 +36,6 @@ export function EnhancedImageUpload({
   existingImages = []
 }: EnhancedImageUploadProps) {
   
-  const [uploadingFiles, setUploadingFiles] = useState<ImageFile[]>([])
-  const [overallProgress, setOverallProgress] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [dragActive, setDragActive] = useState(false)
@@ -167,19 +157,17 @@ export function EnhancedImageUpload({
     
     const validFiles: File[] = []
     const newErrors: string[] = []
-    const processedFiles: ImageFile[] = []
 
-    // Initial validation
+    // Process each file directly without creating ImageFile objects
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i]
       
       // Check if file is valid
-      if (!file || typeof file !== 'object') {
+      if (!file || !(file instanceof File)) {
         newErrors.push(`File ${i + 1}: Invalid file object`)
         continue
       }
       
-      // Provide fallback for file name
       const fileName = file.name || `Unknown file ${i + 1}`
       
       const basicError = validateFile(file)
@@ -189,51 +177,20 @@ export function EnhancedImageUpload({
         continue
       }
 
-      const imageFile: ImageFile = {
-        ...file,
-        name: fileName, // Ensure name is always set
-        id: `${Date.now()}-${i}`,
-        isUploading: true,
-        uploadProgress: 0
-      }
-      
-      processedFiles.push(imageFile)
-    }
-
-    setUploadingFiles(processedFiles)
-
-    // Advanced validation with progress
-    for (let i = 0; i < processedFiles.length; i++) {
-      const file = processedFiles[i]
-      const fileName = file.name || `File ${i + 1}`
-      
       try {
-        // Simulate processing time and check dimensions
+        // Validate dimensions directly on the original file object
         const dimensionError = await validateImageDimensions(file)
         
         if (dimensionError) {
           newErrors.push(`${fileName}: ${dimensionError}`)
-          processedFiles[i].error = dimensionError
         } else {
+          // Only add the original file object to validFiles
           validFiles.push(file)
-          processedFiles[i].uploadProgress = 100
         }
-        
-        // Update progress
-        const progress = ((i + 1) / processedFiles.length) * 100
-        setOverallProgress(progress)
-        setUploadingFiles([...processedFiles])
-        
-        // Simulate processing delay for bulk uploads
-        if (processedFiles.length > 5) {
-          await new Promise(resolve => setTimeout(resolve, 200))
-        }
-        
       } catch (error) {
         console.error('Error processing file:', error)
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         newErrors.push(`${fileName}: Error processing file (${errorMessage})`)
-        processedFiles[i].error = 'Processing error'
       }
     }
 
@@ -253,11 +210,7 @@ export function EnhancedImageUpload({
     }
 
     // Reset states
-    setTimeout(() => {
-      setUploadingFiles([])
-      setOverallProgress(0)
-      setIsProcessing(false)
-    }, 1000)
+    setIsProcessing(false)
   }
 
   const handleFileUpload = useCallback((files: FileList | null) => {
@@ -370,41 +323,14 @@ export function EnhancedImageUpload({
         </div>
       </div>
 
-      {/* Processing Progress */}
-      {isProcessing && uploadingFiles.length > 0 && (
+      {/* Processing Indicator */}
+      {isProcessing && (
         <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm font-medium">
-                Processing {uploadingFiles.length} image{uploadingFiles.length !== 1 ? 's' : ''}...
-              </span>
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {Math.round(overallProgress)}%
+          <div className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm font-medium">
+              Processing images...
             </span>
-          </div>
-          
-          <Progress value={overallProgress} className="w-full" />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-            {uploadingFiles.map((file) => (
-              <div key={file.id} className="flex items-center justify-between p-2 bg-background rounded">
-                <span className="truncate flex-1 mr-2">{file.name}</span>
-                <div className="flex items-center gap-1">
-                  {file.error ? (
-                    <AlertTriangle className="w-3 h-3 text-destructive" />
-                  ) : file.uploadProgress === 100 ? (
-                    <Check className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  )}
-                  <span className="text-xs">
-                    {file.error ? 'Error' : `${file.uploadProgress}%`}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
