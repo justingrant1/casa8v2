@@ -10,6 +10,9 @@ interface AuthContextType {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string, userData: any) => Promise<{ error: AuthError | null }>
+  signInWithGoogle: () => Promise<{ error: AuthError | null }>
+  completeOnboarding: (onboardingData: any) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>
 }
 
@@ -77,6 +80,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
+  const signUp = async (email: string, password: string, userData: any) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: userData
+        }
+      })
+
+      if (error) return { error }
+
+      // If user is confirmed, create profile
+      if (data.user && !data.user.email_confirmed_at) {
+        // For email confirmation flow
+        return { error: null }
+      }
+
+      // Create profile if user is immediately confirmed
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: data.user.id,
+              email: data.user.email!,
+              full_name: userData.full_name,
+              role: userData.role,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError)
+          return { error: profileError }
+        }
+      }
+
+      return { error: null }
+    } catch (error: any) {
+      console.error('SignUp error:', error)
+      return { error }
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
+    return { error }
+  }
+
+  const completeOnboarding = async (onboardingData: any) => {
+    try {
+      if (!user) {
+        throw new Error('No user found')
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          has_section8: onboardingData.has_section8,
+          voucher_bedrooms: onboardingData.voucher_bedrooms,
+          preferred_city: onboardingData.preferred_city,
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      // Refresh the profile
+      await fetchProfile(user)
+      
+      return { error: null }
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error)
+      return { error }
+    }
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -90,6 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     loading,
     signIn,
+    signUp,
+    signInWithGoogle,
+    completeOnboarding,
     signOut,
   }
 
