@@ -143,7 +143,7 @@ export interface Database {
           sender_id: string
           recipient_id: string
           subject: string
-          content: string
+          message_text: string
           message_type: 'inquiry' | 'application' | 'general'
           read: boolean
           created_at: string
@@ -154,7 +154,7 @@ export interface Database {
           sender_id: string
           recipient_id: string
           subject: string
-          content: string
+          message_text: string
           message_type: 'inquiry' | 'application' | 'general'
           read?: boolean
           created_at?: string
@@ -301,7 +301,7 @@ export function isProperty(obj: any): obj is Property {
 }
 
 export function isMessage(obj: any): obj is Message {
-  return obj && typeof obj.id === 'string' && typeof obj.content === 'string'
+  return obj && typeof obj.id === 'string' && typeof obj.message_text === 'string'
 }
 
 export function isApplication(obj: any): obj is Application {
