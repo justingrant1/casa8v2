@@ -257,6 +257,10 @@ export default function PropertyDetailPage() {
             amenities: data.amenities || [],
             available: data.available,
             images: data.property_images?.map((img: { image_url: string }) => img.image_url) || ["/placeholder.svg"],
+            videos: data.property_videos?.map((video: { video_url: string; title: string | null }) => ({
+              url: video.video_url,
+              title: video.title || 'Property Video'
+            })) || [],
             landlord_id: data.landlord_id, // Add this for applications
             landlord: {
               name: data.profiles?.full_name || "Property Owner",
@@ -531,6 +535,34 @@ export default function PropertyDetailPage() {
                 ))}
               </div>
             </div>
+
+            {/* Property Videos */}
+            {property.videos && property.videos.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Property Videos</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {property.videos.map((video: { url: string; title: string }, index: number) => (
+                    <div key={index} className="rounded-lg overflow-hidden bg-muted">
+                      <video
+                        controls
+                        className="w-full h-64 object-cover"
+                        preload="metadata"
+                      >
+                        <source src={video.url} type="video/mp4" />
+                        <source src={video.url} type="video/webm" />
+                        <source src={video.url} type="video/quicktime" />
+                        Your browser does not support the video tag.
+                      </video>
+                      <div className="p-3">
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {video.title}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Property Info */}
             <div className="space-y-4">

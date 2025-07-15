@@ -13,6 +13,13 @@ export type PropertyWithDetails = Property & {
     alt_text: string | null
     order_index: number
   }>
+  property_videos?: Array<{
+    id: string
+    video_url: string
+    title: string | null
+    order_index: number
+    file_size: number | null
+  }>
   contact_phone?: string | null
   allow_chat?: boolean
 }
@@ -41,6 +48,13 @@ export async function getProperties(options?: {
           image_url,
           alt_text,
           order_index
+        ),
+        property_videos (
+          id,
+          video_url,
+          title,
+          order_index,
+          file_size
         )
       `)
       .eq('available', true)
@@ -101,6 +115,13 @@ export async function getPropertyById(id: string) {
           image_url,
           alt_text,
           order_index
+        ),
+        property_videos (
+          id,
+          video_url,
+          title,
+          order_index,
+          file_size
         )
       `)
       .eq('id', id)
