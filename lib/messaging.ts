@@ -103,47 +103,42 @@ export async function sendMessage(data: CreateMessageData) {
 
 export async function getMessagesForUser(userId: string) {
   try {
+    console.log('🔍 Fetching messages for user:', userId)
+    
+    // Simplified query without complex joins - just get the messages first
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        sender:sender_id (
-          email,
-          full_name
-        ),
-        recipient:recipient_id (
-          email,
-          full_name
-        ),
-        property:property_id (
-          title,
-          address
-        ),
-        application:application_id (
-          status,
-          tenant_name
-        )
-      `)
+      .select('*')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: false })
 
-    if (error) throw error
+    if (error) {
+      console.error('❌ Messages query error:', error)
+      throw error
+    }
 
+    console.log('✅ Messages fetched successfully:', data?.length || 0, 'messages')
     return data || []
   } catch (error) {
-    console.error('Error fetching messages:', error)
+    console.error('❌ Error fetching messages:', error)
     throw error
   }
 }
 
 export async function getMessageThreads(userId: string) {
   try {
+    console.log('🧵 Starting to group messages into threads...')
     const messages = await getMessagesForUser(userId)
+    
+    if (messages.length === 0) {
+      console.log('📭 No messages found for user')
+      return []
+    }
     
     // Group messages by conversation (property_id or application_id + participants)
     const threadMap = new Map<string, MessageThread>()
     
-    messages.forEach((message) => {
+    messages.forEach((message, index) => {
       const otherParticipant = message.sender_id === userId ? message.recipient_id : message.sender_id
       
       let contextId = ''
@@ -158,6 +153,8 @@ export async function getMessageThreads(userId: string) {
       const participantsKey = [userId, otherParticipant].sort().join('-')
       const threadKey = `${contextId}-${participantsKey}`
       
+      console.log(`📝 Message ${index + 1}: ThreadKey=${threadKey}, Other=${otherParticipant}, Property=${message.property_id}`)
+      
       if (!threadMap.has(threadKey)) {
         threadMap.set(threadKey, {
           id: threadKey,
@@ -168,6 +165,7 @@ export async function getMessageThreads(userId: string) {
           unread_count: 0,
           messages: []
         })
+        console.log(`✨ Created new thread: ${threadKey}`)
       }
       
       const thread = threadMap.get(threadKey)!
@@ -184,12 +182,18 @@ export async function getMessageThreads(userId: string) {
       }
     })
     
-    // Sort threads by last message date
-    return Array.from(threadMap.values()).sort(
+    const threads = Array.from(threadMap.values()).sort(
       (a, b) => new Date(b.last_message.created_at).getTime() - new Date(a.last_message.created_at).getTime()
     )
+    
+    console.log(`✅ Created ${threads.length} message threads:`)
+    threads.forEach((thread, index) => {
+      console.log(`  Thread ${index + 1}: ${thread.id} (${thread.messages.length} messages, ${thread.unread_count} unread)`)
+    })
+    
+    return threads
   } catch (error) {
-    console.error('Error fetching message threads:', error)
+    console.error('❌ Error fetching message threads:', error)
     throw error
   }
 }
