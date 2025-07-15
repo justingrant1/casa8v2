@@ -22,15 +22,26 @@ export async function middleware(req: NextRequest) {
     // Check for Supabase auth cookies (they start with sb-)
     const authCookies = req.cookies.getAll()
     const hasAuthCookie = authCookies.some(cookie => 
-      cookie.name.startsWith('sb-') && cookie.value
+      cookie.name.startsWith('sb-') && cookie.value && cookie.value.length > 10
     )
     
-    // If no auth cookies found, redirect to login
-    if (!hasAuthCookie) {
+    // Look for specific auth cookies that indicate a valid session
+    const accessTokenCookie = authCookies.find(cookie => 
+      cookie.name.includes('access-token') && cookie.value
+    )
+    const refreshTokenCookie = authCookies.find(cookie => 
+      cookie.name.includes('refresh-token') && cookie.value
+    )
+    
+    // If no valid auth cookies found, redirect to login
+    if (!hasAuthCookie && !accessTokenCookie && !refreshTokenCookie) {
+      console.log('🔒 Middleware: No valid auth cookies found, redirecting to login')
       const redirectUrl = new URL('/login', req.url)
       redirectUrl.searchParams.set('redirectTo', path)
       return NextResponse.redirect(redirectUrl)
     }
+    
+    console.log('✅ Middleware: Valid auth cookies found, allowing access to', path)
   }
   
   // Let client-side auth handle role-based access control
