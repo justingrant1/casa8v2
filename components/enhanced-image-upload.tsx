@@ -83,10 +83,44 @@ export function EnhancedImageUpload({
 
   const validateImageDimensions = (file: File): Promise<string | null> => {
     return new Promise((resolve) => {
+      // Check if file is a valid object
+      if (!file || typeof file !== 'object') {
+        resolve('Invalid file object')
+        return
+      }
+      
+      // Check if file has a valid type for image processing
+      if (!file.type || !file.type.startsWith('image/')) {
+        resolve('File is not a valid image')
+        return
+      }
+      
+      // Check if file has required properties
+      if (!file.size || typeof file.size !== 'number') {
+        resolve('File is missing required properties')
+        return
+      }
+      
+      let url: string
+      
+      try {
+        url = URL.createObjectURL(file)
+      } catch (error) {
+        console.error('Error creating object URL:', error)
+        resolve('Failed to process image file - invalid file format')
+        return
+      }
+      
       const img = new Image()
-      const url = URL.createObjectURL(file)
+      
+      // Set a timeout to prevent hanging
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(url)
+        resolve('Image processing timed out.')
+      }, 10000) // 10 second timeout
       
       img.onload = () => {
+        clearTimeout(timeout)
         URL.revokeObjectURL(url)
         
         // Minimum dimensions
@@ -105,8 +139,9 @@ export function EnhancedImageUpload({
       }
       
       img.onerror = () => {
+        clearTimeout(timeout)
         URL.revokeObjectURL(url)
-        resolve('Invalid image file.')
+        resolve('Invalid image file or corrupted data.')
       }
       
       img.src = url
@@ -411,7 +446,17 @@ export function EnhancedImageUpload({
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((file, index) => {
-              const imageUrl = URL.createObjectURL(file)
+              let imageUrl: string
+              let hasError = false
+              
+              try {
+                imageUrl = URL.createObjectURL(file)
+              } catch (error) {
+                console.error('Error creating object URL for display:', error)
+                hasError = true
+                imageUrl = '' // fallback
+              }
+              
               const isMain = showMainSelector && index === mainImageIndex
               
               return (
@@ -425,12 +470,31 @@ export function EnhancedImageUpload({
                   onClick={() => showMainSelector && setMainImage(index)}
                 >
                   <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img 
-                      src={imageUrl}
-                      alt={file.name}
-                      className="w-full h-full object-cover"
-                      onLoad={() => URL.revokeObjectURL(imageUrl)}
-                    />
+                    {hasError ? (
+                      <div className="w-full h-full flex items-center justify-center bg-muted">
+                        <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <img 
+                        src={imageUrl}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                        onLoad={() => {
+                          try {
+                            URL.revokeObjectURL(imageUrl)
+                          } catch (error) {
+                            console.error('Error revoking object URL:', error)
+                          }
+                        }}
+                        onError={() => {
+                          try {
+                            URL.revokeObjectURL(imageUrl)
+                          } catch (error) {
+                            console.error('Error revoking object URL:', error)
+                          }
+                        }}
+                      />
+                    )}
                   </div>
                   
                   {/* Main Image Badge */}
