@@ -17,8 +17,8 @@ interface Coordinates {
 // Function to get user's location based on IP
 export async function getUserLocationByIP(): Promise<LocationData | null> {
   try {
-    // Using ipapi.co for IP geolocation (free tier available)
-    const response = await fetch('https://ipapi.co/json/')
+    // Use our server-side API route to avoid CORS issues
+    const response = await fetch('/api/location')
     
     if (!response.ok) {
       throw new Error('Failed to fetch location')
@@ -26,13 +26,14 @@ export async function getUserLocationByIP(): Promise<LocationData | null> {
     
     const data = await response.json()
     
+    // Return the data as-is since our API already formats it correctly
     return {
-      city: data.city || '',
-      state: data.region || '',
-      country: data.country_name || '',
+      city: data.city || 'Unknown',
+      state: data.state || 'Unknown',
+      country: data.country || 'Unknown',
       latitude: data.latitude || 0,
       longitude: data.longitude || 0,
-      ip: data.ip || ''
+      ip: data.ip || 'unknown'
     }
   } catch (error) {
     console.error('Error getting location by IP:', error)
@@ -41,16 +42,24 @@ export async function getUserLocationByIP(): Promise<LocationData | null> {
     try {
       const position = await getCurrentPosition()
       return {
-        city: '',
-        state: '',
-        country: '',
+        city: 'Unknown',
+        state: 'Unknown',
+        country: 'Unknown',
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-        ip: ''
+        ip: 'unknown'
       }
     } catch (geoError) {
       console.error('Geolocation also failed:', geoError)
-      return null
+      // Return a default location instead of null to prevent search from failing
+      return {
+        city: 'Unknown',
+        state: 'Unknown',
+        country: 'Unknown',
+        latitude: 0,
+        longitude: 0,
+        ip: 'unknown'
+      }
     }
   }
 }
