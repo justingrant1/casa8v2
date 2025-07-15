@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MessageCircle, Mail, Phone, Copy, Send, Loader2, LogIn } from "lucide-react"
 import { toast } from "sonner"
-import { sendMessage } from "@/lib/messaging"
+import { contactLandlord } from "@/lib/messaging"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
 
@@ -58,11 +58,13 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
     setIsLoading(true)
 
     try {
-      await sendMessage({
+      await contactLandlord({
         property_id: property.id,
-        recipient_id: landlord.id,
+        landlord_id: landlord.id,
         subject: emailForm.subject,
-        content: emailForm.message,
+        message: emailForm.message,
+        tenant_name: profile?.full_name || user.email || 'Anonymous',
+        tenant_email: user.email || '',
       })
 
       toast.success("Message sent!", {
@@ -91,11 +93,13 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
 
     try {
       // Send initial message to start the conversation
-      await sendMessage({
+      await contactLandlord({
         property_id: property.id,
-        recipient_id: landlord.id,
+        landlord_id: landlord.id,
         subject: `Inquiry about ${property.title}`,
-        content: emailForm.message,
+        message: emailForm.message,
+        tenant_name: profile?.full_name || user.email || 'Anonymous',
+        tenant_email: user.email || '',
       })
 
       toast.success("Chat started!", {
@@ -104,7 +108,7 @@ export function ContactLandlordModal({ isOpen, onClose, landlord, property }: Co
       
       // Redirect to messages page after a brief delay
       setTimeout(() => {
-        window.location.href = '/messages'
+        window.location.href = `/messages?conversation=${landlord.id}&property=${property.id}`
       }, 1500)
       
       onClose()
