@@ -30,10 +30,7 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
     <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-              <span className="text-primary-foreground font-bold text-lg">C8</span>
-            </div>
+          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
             <span className="text-2xl font-bold text-gray-900">Casa8</span>
           </Link>
 
