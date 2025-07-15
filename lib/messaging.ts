@@ -105,34 +105,22 @@ export async function getMessagesForUser(userId: string) {
   try {
     console.log('🔍 Fetching messages for user:', userId)
     
-    // Test database connection first
-    const { count, error: testError } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .limit(1)
-
-    if (testError) {
-      console.error('❌ Database connection error:', testError)
-      if (testError.code === 'PGRST116') {
-        console.log('📭 Messages table does not exist - returning empty array')
-        return []
-      }
-      throw testError
-    }
-
-    console.log('✅ Database connection successful')
-    
-    // Simplified query without complex joins - just get the messages first
+    // Simplified query with timeout protection
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: false })
-      .limit(100) // Add limit to prevent huge queries
+      .limit(50) // Reduced limit for faster queries
 
     if (error) {
       console.error('❌ Messages query error:', error)
-      throw error
+      if (error.code === 'PGRST116') {
+        console.log('📭 Messages table does not exist - returning empty array')
+        return []
+      }
+      // Return empty array instead of throwing to prevent infinite loading
+      return []
     }
 
     console.log('✅ Messages fetched successfully:', data?.length || 0, 'messages')

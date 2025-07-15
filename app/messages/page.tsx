@@ -41,7 +41,7 @@ export default function MessagesPage() {
         
         // Add timeout to prevent infinite loading
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Conversation loading timeout')), 10000)
+          setTimeout(() => reject(new Error('Conversation loading timeout')), 5000)
         })
         
         const threadsPromise = getMessageThreads(user.id)
