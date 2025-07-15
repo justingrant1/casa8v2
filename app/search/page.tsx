@@ -292,14 +292,8 @@ export default function SearchPage() {
       }
     }
 
-        // Only fetch if we don't have properties yet or if search parameters actually changed
-        if (allProperties.length === 0 || 
-            searchQuery.trim() !== '' || 
-            locationQuery !== '' || 
-            bedrooms !== "any" || 
-            propertyType !== "any") {
-          fetchProperties()
-        }
+        // Always fetch properties to ensure fresh data
+        fetchProperties()
   }, [searchQuery, locationQuery, bedrooms, propertyType])
 
   // Handle URL search parameters

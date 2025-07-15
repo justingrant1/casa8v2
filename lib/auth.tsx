@@ -4,119 +4,28 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { User, AuthError } from '@supabase/supabase-js'
 import { supabase, Profile } from './supabase'
 
-// Retry configuration
-const RETRY_CONFIG = {
-  maxAttempts: 3,
-  baseDelay: 1000,
-  maxDelay: 10000,
-  multiplier: 2,
-  jitter: true
-}
-
-// Utility function for retry with exponential backoff
-const retryWithBackoff = async <T,>(
+// Simplified retry function for critical operations only
+const simpleRetry = async <T,>(
   fn: () => Promise<T>,
-  options = RETRY_CONFIG,
-  isRetryable = (error: any) => true,
-  isMounted = () => true
+  maxAttempts = 2,
+  delay = 1000
 ): Promise<T> => {
-  let lastError: any
-  
-  for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // Check if component is still mounted before each attempt
-      if (!isMounted()) {
-        throw new Error('Component unmounted during retry')
-      }
-      
-      const result = await fn()
-      
-      if (attempt > 1) {
-        console.log(`✅ Retry successful on attempt ${attempt}`)
-      }
-      
-      return result
-    } catch (error) {
-      lastError = error
-      
-      // Don't retry if component is unmounted
-      if (!isMounted()) {
-        console.log('🚫 Component unmounted, canceling retry')
+      return await fn()
+    } catch (error: any) {
+      if (attempt === maxAttempts) {
         throw error
       }
-      
-      // Don't retry if error is not retryable
-      if (!isRetryable(error)) {
-        console.log('🚫 Non-retryable error, not retrying:', error)
-        throw error
+      // Only retry on network errors
+      if (error?.name === 'NetworkError' || error?.status >= 500) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
       }
-      
-      // Don't retry on last attempt
-      if (attempt === options.maxAttempts) {
-        console.log(`❌ Max retry attempts (${options.maxAttempts}) reached`)
-        throw error
-      }
-      
-      // Calculate delay with exponential backoff
-      let delay = options.baseDelay * Math.pow(options.multiplier, attempt - 1)
-      
-      // Apply jitter to prevent thundering herd
-      if (options.jitter) {
-        delay = delay * (0.5 + Math.random() * 0.5)
-      }
-      
-      // Cap at max delay
-      delay = Math.min(delay, options.maxDelay)
-      
-      console.log(`⏳ Retry attempt ${attempt} failed, retrying in ${delay}ms:`, error)
-      
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, delay))
+      throw error
     }
   }
-  
-  throw lastError
-}
-
-// Helper to determine if an error is retryable
-const isRetryableError = (error: any): boolean => {
-  // Network errors are retryable
-  if (error?.name === 'NetworkError' || error?.message?.includes('network')) {
-    return true
-  }
-  
-  // Timeout errors are retryable
-  if (error?.name === 'TimeoutError' || error?.message?.includes('timeout')) {
-    return true
-  }
-  
-  // Rate limit errors are retryable
-  if (error?.status === 429) {
-    return true
-  }
-  
-  // Server errors (5xx) are retryable
-  if (error?.status >= 500 && error?.status < 600) {
-    return true
-  }
-  
-  // Supabase specific retryable errors
-  if (error?.code === 'PGRST301' || error?.code === 'PGRST302') {
-    return true
-  }
-  
-  // Auth errors are generally not retryable
-  if (error?.code?.startsWith('auth_')) {
-    return false
-  }
-  
-  // Invalid credentials are not retryable
-  if (error?.message?.includes('Invalid login credentials')) {
-    return false
-  }
-  
-  // Default to retryable for unknown errors
-  return true
+  throw new Error('Retry failed')
 }
 
 interface AuthContextType {
@@ -164,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchingProfile.current.add(userId)
     
     try {
-      const result = await retryWithBackoff(
+      const result = await simpleRetry(
         async () => {
           const { data, error } = await supabase
             .from('profiles')
@@ -177,10 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           return data
-        },
-        RETRY_CONFIG,
-        isRetryableError,
-        () => mounted.current
+        }
       )
 
       if (mounted.current) {
@@ -311,7 +217,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, userData: { full_name: string; role: 'tenant' | 'landlord' }) => {
     try {
-      const result = await retryWithBackoff(
+      const result = await simpleRetry(
         async () => {
           const { data, error } = await supabase.auth.signUp({
             email,
@@ -327,10 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           return data
-        },
-        RETRY_CONFIG,
-        isRetryableError,
-        () => mounted.current
+        }
       )
 
       // Create profile only if it doesn't already exist
@@ -347,7 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!existingProfile) {
           console.log('No existing profile found, creating a new one...')
-          await retryWithBackoff(
+          await simpleRetry(
             async () => {
               const { error: profileError } = await supabase
                 .from('profiles')
@@ -361,10 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (profileError) {
                 throw profileError
               }
-            },
-            RETRY_CONFIG,
-            isRetryableError,
-            () => mounted.current
+            }
           )
         } else {
           console.log('Existing profile found, skipping profile creation.')
@@ -385,7 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const result = await retryWithBackoff(
+      const result = await simpleRetry(
         async () => {
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -397,10 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           return data
-        },
-        RETRY_CONFIG,
-        isRetryableError,
-        () => mounted.current
+        }
       )
 
       // Fetch profile but don't redirect here - let the calling component handle it
@@ -472,7 +369,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: new Error('No user logged in') }
       }
 
-      await retryWithBackoff(
+      await simpleRetry(
         async () => {
           const { error } = await supabase
             .from('profiles')
@@ -482,10 +379,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (error) {
             throw error
           }
-        },
-        RETRY_CONFIG,
-        isRetryableError,
-        () => mounted.current
+        }
       )
 
       // Update local profile state
@@ -517,7 +411,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('📝 Auth: Preparing to update profile with:', updates)
 
-      const result = await retryWithBackoff(
+      const result = await simpleRetry(
         async () => {
           const { data: result, error } = await supabase
             .from('profiles')
@@ -530,10 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           return result
-        },
-        RETRY_CONFIG,
-        isRetryableError,
-        () => mounted.current
+        }
       )
 
       console.log('📋 Auth: Supabase update result:', result)

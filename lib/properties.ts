@@ -24,6 +24,54 @@ export type PropertyWithDetails = Property & {
   allow_chat?: boolean
 }
 
+// Cache for query results
+const queryCache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Simple retry function for database operations
+const retryQuery = async <T>(
+  queryFn: () => Promise<T>,
+  maxAttempts = 2,
+  delay = 1000
+): Promise<T> => {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await queryFn()
+    } catch (error: any) {
+      if (attempt === maxAttempts) {
+        throw error
+      }
+      // Only retry on network errors or server errors
+      if (error?.code === 'PGRST301' || error?.status >= 500) {
+        await new Promise(resolve => setTimeout(resolve, delay))
+        continue
+      }
+      throw error
+    }
+  }
+  throw new Error('Retry failed')
+}
+
+// Get cached result or execute query
+const getCachedResult = async <T>(
+  cacheKey: string,
+  queryFn: () => Promise<T>
+): Promise<T> => {
+  const cached = queryCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data
+  }
+  
+  const result = await queryFn()
+  queryCache.set(cacheKey, { data: result, timestamp: Date.now() })
+  return result
+}
+
+// Clear cache when needed
+export const clearPropertiesCache = () => {
+  queryCache.clear()
+}
+
 export async function getProperties(options?: {
   limit?: number
   offset?: number
@@ -33,70 +81,66 @@ export async function getProperties(options?: {
   bedrooms?: number
   propertyType?: string
 }) {
-  try {
-    let query = supabase
-      .from('properties')
-      .select(`
-        *,
-        profiles!landlord_id (
-          full_name,
-          email,
-          phone
-        ),
-        property_images (
-          id,
-          image_url,
-          alt_text,
-          order_index
-        ),
-        property_videos (
-          id,
-          video_url,
-          title,
-          order_index,
-          file_size
-        )
-      `)
-      .eq('available', true)
-      .order('created_at', { ascending: false })
+  // Create cache key based on options
+  const cacheKey = `properties-${JSON.stringify(options || {})}`
+  
+  return getCachedResult(cacheKey, async () => {
+    return retryQuery(async () => {
+      // Use lighter query for list view - don't fetch videos unless needed
+      let query = supabase
+        .from('properties')
+        .select(`
+          *,
+          profiles!landlord_id (
+            full_name,
+            email,
+            phone
+          ),
+          property_images (
+            id,
+            image_url,
+            alt_text,
+            order_index
+          )
+        `)
+        .eq('available', true)
+        .order('created_at', { ascending: false })
 
-    // Apply filters
-    if (options?.city) {
-      query = query.ilike('city', `%${options.city}%`)
-    }
-    if (options?.minPrice) {
-      query = query.gte('price', options.minPrice)
-    }
-    if (options?.maxPrice) {
-      query = query.lte('price', options.maxPrice)
-    }
-    if (options?.bedrooms) {
-      query = query.eq('bedrooms', options.bedrooms)
-    }
-    if (options?.propertyType) {
-      query = query.eq('property_type', options.propertyType)
-    }
+      // Apply filters
+      if (options?.city) {
+        query = query.ilike('city', `%${options.city}%`)
+      }
+      if (options?.minPrice) {
+        query = query.gte('price', options.minPrice)
+      }
+      if (options?.maxPrice) {
+        query = query.lte('price', options.maxPrice)
+      }
+      if (options?.bedrooms) {
+        query = query.eq('bedrooms', options.bedrooms)
+      }
+      if (options?.propertyType) {
+        query = query.eq('property_type', options.propertyType)
+      }
 
-    // Apply pagination
-    if (options?.limit) {
-      query = query.limit(options.limit)
-    }
-    if (options?.offset) {
-      query = query.range(options.offset, (options.offset + (options.limit || 10)) - 1)
-    }
+      // Apply pagination
+      if (options?.limit) {
+        query = query.limit(options.limit)
+      }
+      if (options?.offset) {
+        query = query.range(options.offset, (options.offset + (options.limit || 10)) - 1)
+      }
 
-    const { data, error } = await query
+      const { data, error } = await query
 
-    if (error) {
-      console.error('Error fetching properties:', error)
-      throw error
-    }
+      if (error) {
+        console.error('Error fetching properties:', error)
+        throw error
+      }
 
-    return data as PropertyWithDetails[]
-  } catch (error) {
-    console.error('Error in getProperties:', error)
-    throw error
-  }
+      return data as PropertyWithDetails[]
+    })
+  })
 }
 
 export async function getPropertyById(id: string) {

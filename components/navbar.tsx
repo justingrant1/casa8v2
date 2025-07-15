@@ -25,6 +25,7 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
 
   const isLandlord = profile?.role === 'landlord'
   const isLoadingProfile = user && !profile
+  const isTenant = profile?.role === 'tenant'
 
   return (
     <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
@@ -60,8 +61,8 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
               >
                 Favorites
               </Link>
-              {/* Show Dashboard for landlords and while profile is loading */}
-              {(isLandlord || isLoadingProfile) && (
+              {/* Show Dashboard only for landlords */}
+              {isLandlord && (
                 <Link 
                   href="/dashboard" 
                   className={`hover:text-primary transition-colors ${
@@ -85,7 +86,7 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                 </Link>
                 
                 {/* Mobile dashboard button for landlords */}
-                {(isLandlord || isLoadingProfile) && (
+                {isLandlord && (
                   <Link href="/dashboard" className="md:hidden">
                     <Button variant="ghost" size="sm">
                       Dashboard
@@ -94,7 +95,7 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                 )}
                 
                 {/* Post Listing button for landlords */}
-                {(isLandlord || isLoadingProfile) && (
+                {isLandlord && (
                   <Button 
                     className="bg-primary hover:bg-primary/90 font-medium px-6" 
                     onClick={handlePostListing}
@@ -102,6 +103,14 @@ export function Navbar({ currentPage = 'home' }: NavbarProps) {
                     <span className="hidden sm:inline">Post Listing</span>
                     <span className="sm:hidden">Post</span>
                   </Button>
+                )}
+                
+                {/* Loading state for profile */}
+                {isLoadingProfile && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-primary rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-500">Loading...</span>
+                  </div>
                 )}
                 
                 <UserDropdown />

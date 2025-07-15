@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from './auth'
 import { getUserFavorites, addToFavorites, removeFromFavorites, getUserFavoriteIds } from './favorites-db'
 
@@ -20,26 +20,49 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [favoriteProperties, setFavoriteProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  
+  // Track mounted state and pending operations
+  const mounted = useRef(true)
+  const abortController = useRef<AbortController | null>(null)
+  const pendingToggles = useRef<Set<string>>(new Set())
 
-  // Load favorites from database when user logs in
-  const loadFavorites = async () => {
+  // Optimized load favorites with abort controller
+  const loadFavorites = useCallback(async () => {
     if (!user) {
-      setFavorites(new Set())
-      setFavoriteProperties([])
+      if (mounted.current) {
+        setFavorites(new Set())
+        setFavoriteProperties([])
+      }
       return
     }
 
+    // Cancel any pending request
+    if (abortController.current) {
+      abortController.current.abort()
+    }
+    abortController.current = new AbortController()
+
     try {
-      setLoading(true)
+      if (mounted.current) {
+        setLoading(true)
+      }
       
       // Get favorite IDs
       const favoriteIds = await getUserFavoriteIds(user.id)
+      
+      if (!mounted.current) return
+      
       setFavorites(new Set(favoriteIds))
       
       // Get full favorite properties
       const favoriteProps = await getUserFavorites(user.id)
-      setFavoriteProperties(favoriteProps)
+      
+      if (mounted.current) {
+        setFavoriteProperties(favoriteProps)
+      }
     } catch (error) {
+      if (!mounted.current) return
+      
       console.error('Error loading favorites:', error)
       // Fallback to localStorage for now
       if (typeof window !== 'undefined') {
@@ -54,14 +77,26 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } finally {
-      setLoading(false)
+      if (mounted.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [user])
 
   // Load favorites when user changes
   useEffect(() => {
     loadFavorites()
-  }, [user])
+  }, [loadFavorites])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mounted.current = false
+      if (abortController.current) {
+        abortController.current.abort()
+      }
+    }
+  }, [])
 
   // Save to localStorage as backup when favorites change
   useEffect(() => {
@@ -70,61 +105,78 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     }
   }, [favorites])
 
-  const toggleFavorite = async (propertyId: string) => {
-    if (!user) {
-      // If not logged in, just use localStorage
+  const toggleFavorite = useCallback(async (propertyId: string) => {
+    // Prevent duplicate toggles
+    if (pendingToggles.current.has(propertyId)) {
+      return
+    }
+    
+    pendingToggles.current.add(propertyId)
+    
+    try {
+      if (!user) {
+        // If not logged in, just use localStorage
+        setFavorites(prev => {
+          const newFavorites = new Set(prev)
+          if (newFavorites.has(propertyId)) {
+            newFavorites.delete(propertyId)
+          } else {
+            newFavorites.add(propertyId)
+          }
+          return newFavorites
+        })
+        return
+      }
+
+      const isCurrentlyFavorite = favorites.has(propertyId)
+      
+      // Optimistic update
       setFavorites(prev => {
         const newFavorites = new Set(prev)
-        if (newFavorites.has(propertyId)) {
+        if (isCurrentlyFavorite) {
           newFavorites.delete(propertyId)
         } else {
           newFavorites.add(propertyId)
         }
         return newFavorites
       })
-      return
-    }
 
-    try {
-      if (favorites.has(propertyId)) {
+      if (isCurrentlyFavorite) {
         // Remove from favorites
         await removeFromFavorites(user.id, propertyId)
-        setFavorites(prev => {
-          const newFavorites = new Set(prev)
-          newFavorites.delete(propertyId)
-          return newFavorites
-        })
-        // Remove from favorite properties list
-        setFavoriteProperties(prev => prev.filter(prop => prop.id !== propertyId))
+        if (mounted.current) {
+          setFavoriteProperties(prev => prev.filter(prop => prop.id !== propertyId))
+        }
       } else {
         // Add to favorites
         await addToFavorites(user.id, propertyId)
-        setFavorites(prev => new Set([...prev, propertyId]))
-        // Refresh favorite properties to include the new one
-        refreshFavorites()
+        // Note: We don't refresh here to avoid unnecessary API calls
+        // The favorites page will refresh when visited
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
-      // Fallback to local state only
+      // Revert optimistic update on error
       setFavorites(prev => {
         const newFavorites = new Set(prev)
-        if (newFavorites.has(propertyId)) {
-          newFavorites.delete(propertyId)
-        } else {
+        if (favorites.has(propertyId)) {
           newFavorites.add(propertyId)
+        } else {
+          newFavorites.delete(propertyId)
         }
         return newFavorites
       })
+    } finally {
+      pendingToggles.current.delete(propertyId)
     }
-  }
+  }, [user, favorites])
 
-  const isFavorite = (propertyId: string) => {
+  const isFavorite = useCallback((propertyId: string) => {
     return favorites.has(propertyId)
-  }
+  }, [favorites])
 
-  const refreshFavorites = async () => {
+  const refreshFavorites = useCallback(async () => {
     await loadFavorites()
-  }
+  }, [loadFavorites])
 
   const value: FavoritesContextType = {
     favorites,
