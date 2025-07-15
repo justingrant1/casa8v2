@@ -65,7 +65,7 @@ export async function sendMessage(data: CreateMessageData) {
       application_id: data.application_id,
       recipient_id: data.recipient_id,
       subject: data.subject,
-      message_text: data.content,
+      content: data.content,
       sender_id: user.id,
       message_type: data.message_type || 'general'
     }
@@ -129,13 +129,7 @@ export async function getMessagesForUser(userId: string) {
 
     if (error) throw error
 
-    // Map message_text to content for interface compatibility
-    const mappedData = (data || []).map(message => ({
-      ...message,
-      content: message.message_text
-    }))
-
-    return mappedData
+    return data || []
   } catch (error) {
     console.error('Error fetching messages:', error)
     throw error
@@ -218,13 +212,7 @@ export async function getConversation(userId: string, otherUserId: string, prope
 
     if (error) throw error
 
-    // Map message_text to content for interface compatibility
-    const mappedData = (data || []).map(message => ({
-      ...message,
-      content: message.message_text
-    }))
-
-    return mappedData
+    return data || []
   } catch (error) {
     console.error('Error fetching conversation:', error)
     throw error
@@ -436,7 +424,7 @@ export async function contactLandlord(data: {
       property_id: data.property_id,
       recipient_id: data.landlord_id,
       subject: data.subject,
-      message_text: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
+      content: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
       sender_id: user.id,
       message_type: 'inquiry'
     }

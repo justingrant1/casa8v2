@@ -180,8 +180,15 @@ export function EnhancedImageUpload({
         }
       } catch (error) {
         console.error('Error processing file:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        newErrors.push(`${fileName}: Error processing file (${errorMessage})`)
+        let errorMessage = 'Unknown error'
+        if (error instanceof Error && error.message) {
+          errorMessage = error.message
+        } else if (typeof error === 'string') {
+          errorMessage = error
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          errorMessage = String(error.message)
+        }
+        newErrors.push(`${fileName}: Error processing file - ${errorMessage}`)
       }
     }
 
