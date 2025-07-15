@@ -184,7 +184,7 @@ export function RealtimeChat({
         recipient_id: participantId,
         property_id: propertyId,
         subject: `Message about property`,
-        content: newMessage.trim(),
+        message_text: newMessage.trim(),
         message_type: 'inquiry'
       })
 
@@ -289,7 +289,7 @@ export function RealtimeChat({
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm">{message.message_text}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs opacity-70">
                         {new Date(message.created_at).toLocaleTimeString([], {
