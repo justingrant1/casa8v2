@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://casa8.vercel.app'
+  const baseUrl = 'https://www.casa8.com'
   const lastModified = new Date()
 
   // Static pages
@@ -117,7 +117,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   const cityPages = majorCities.map(({ city, state }) => ({
-    url: `${baseUrl}/search?city=${encodeURIComponent(city)}&state=${state}`,
+    url: `${baseUrl}/search?location=${encodeURIComponent(`${city}, ${state}`)}`,
     lastModified,
     changeFrequency: 'daily' as const,
     priority: 0.8,
@@ -156,7 +156,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/search?bedrooms=5%2B`,
+      url: `${baseUrl}/search?bedrooms=5-plus`,
       lastModified,
       changeFrequency: 'daily' as const,
       priority: 0.6,
