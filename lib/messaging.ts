@@ -105,53 +105,25 @@ export async function getMessagesForUser(userId: string) {
   try {
     console.log('🔍 Fetching messages for user:', userId)
     
-    // Try two separate queries instead of OR clause to avoid hanging
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Query timeout')), 3000) // 3 second timeout
-    })
-
-    // Query 1: Messages sent by user
-    const sentQueryPromise = supabase
+    // Start with just sent messages to test if basic query works
+    const { data: sentMessages, error: sentError } = await supabase
       .from('messages')
       .select('*')
       .eq('sender_id', userId)
       .order('created_at', { ascending: false })
       .limit(10)
 
-    // Query 2: Messages received by user
-    const receivedQueryPromise = supabase
-      .from('messages')
-      .select('*')
-      .eq('recipient_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    const [sentResult, receivedResult] = await Promise.race([
-      Promise.all([sentQueryPromise, receivedQueryPromise]),
-      timeoutPromise
-    ])
-
-    if (sentResult.error || receivedResult.error) {
-      const error = sentResult.error || receivedResult.error
-      console.error('❌ Messages query error:', error)
-      if (error?.code === 'PGRST116') {
-        console.log('📭 Messages table does not exist - returning empty array')
-        return []
-      }
+    if (sentError) {
+      console.error('❌ Sent messages query error:', sentError)
       return []
     }
 
-    // Combine and sort results
-    const allMessages = [...(sentResult.data || []), ...(receivedResult.data || [])]
-    const sortedMessages = allMessages.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    ).slice(0, 20) // Keep only top 20
-
-    console.log('✅ Messages fetched successfully:', sortedMessages.length, 'messages')
-    return sortedMessages
+    console.log('✅ Sent messages fetched successfully:', sentMessages?.length || 0, 'messages')
+    
+    // For now, return just sent messages to test
+    return sentMessages || []
   } catch (error) {
     console.error('❌ Error fetching messages:', error)
-    // Return empty array instead of throwing to prevent infinite loading
     return []
   }
 }
