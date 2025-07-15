@@ -403,7 +403,7 @@ export default function LandlordDashboard() {
         property_id: thread.property_id,
         application_id: thread.application_id,
         subject: replySubject || `Re: ${thread.last_message.subject || 'Message'}`,
-        content: replyMessage,
+        message_text: replyMessage,
         message_type: 'general'
       })
 
@@ -878,7 +878,7 @@ export default function LandlordDashboard() {
 
                               {/* Last Message Preview */}
                               <div className="text-sm text-gray-600 line-clamp-2 mb-2">
-                                <span className="font-medium">{senderName}:</span> {lastMessage.content}
+                                <span className="font-medium">{senderName}:</span> {lastMessage.message_text}
                               </div>
 
                               <div className="text-xs text-muted-foreground">
@@ -928,7 +928,7 @@ export default function LandlordDashboard() {
                                           {msg.subject && (
                                           <div className="font-medium text-sm mb-1">{msg.subject}</div>
                                           )}
-                                          <div className="text-sm">{msg.content}</div>
+                                          <div className="text-sm">{msg.message_text}</div>
                                         </div>
                                       </div>
                                     ))}

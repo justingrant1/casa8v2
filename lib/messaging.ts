@@ -8,7 +8,7 @@ export interface Message {
   sender_id: string
   recipient_id: string
   subject?: string
-  content: string
+  message_text: string
   message_type: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
   is_read: boolean
   created_at: string
@@ -38,7 +38,7 @@ export interface CreateMessageData {
   application_id?: string
   recipient_id: string
   subject?: string
-  content: string
+  message_text: string
   message_type?: 'general' | 'application' | 'inquiry' | 'maintenance' | 'system'
 }
 
@@ -65,7 +65,7 @@ export async function sendMessage(data: CreateMessageData) {
       application_id: data.application_id,
       recipient_id: data.recipient_id,
       subject: data.subject,
-      content: data.content,
+      message_text: data.message_text,
       sender_id: user.id,
       message_type: data.message_type || 'general'
     }
@@ -331,7 +331,7 @@ async function createMessageNotification(message: any) {
 
     console.log('Notification would be created:', {
       title: `New message from ${senderName}`,
-      message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+      message: `${subject}: ${message.message_text.substring(0, 100)}${message.message_text.length > 100 ? '...' : ''}`,
     })
 
     // Temporarily disabled due to permission issues
@@ -340,7 +340,7 @@ async function createMessageNotification(message: any) {
     //   .insert([{
     //     user_id: message.recipient_id,
     //     title: `New message from ${senderName}`,
-    //     message: `${subject}: ${message.content.substring(0, 100)}${message.content.length > 100 ? '...' : ''}`,
+    //     message: `${subject}: ${message.message_text.substring(0, 100)}${message.message_text.length > 100 ? '...' : ''}`,
     //     notification_type: 'message',
     //     related_property_id: message.property_id,
     //     related_application_id: message.application_id,
@@ -383,7 +383,7 @@ async function sendMessageEmail(message: any) {
       to: recipientName,
       from: senderName,
       subject: propertyTitle,
-      content: message.content.substring(0, 100) + '...'
+      content: message.message_text.substring(0, 100) + '...'
     })
 
     // Send email notification via EmailJS
@@ -393,7 +393,7 @@ async function sendMessageEmail(message: any) {
       tenant_name: senderName,
       tenant_email: message.sender?.email || '',
       property_title: propertyTitle,
-      message: message.content
+      message: message.message_text
     })
 
     console.log('Email notification sent successfully')
@@ -424,7 +424,7 @@ export async function contactLandlord(data: {
       property_id: data.property_id,
       recipient_id: data.landlord_id,
       subject: data.subject,
-      content: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
+      message_text: `From: ${data.tenant_name} (${data.tenant_email}${data.tenant_phone ? `, ${data.tenant_phone}` : ''})\n\n${data.message}`,
       sender_id: user.id,
       message_type: 'inquiry'
     }

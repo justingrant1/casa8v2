@@ -189,7 +189,7 @@ export function MessagePanel({ conversation, currentUserId, onBack }: MessagePan
         recipient_id: otherUser.id,
         property_id: property.id,
         subject: `Message about ${property.title}`,
-        content: newMessage.trim(),
+        message_text: newMessage.trim(),
         message_type: 'inquiry'
       })
 
@@ -328,7 +328,7 @@ export function MessagePanel({ conversation, currentUserId, onBack }: MessagePan
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm">{message.message_text}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs opacity-70">
                         {new Date(message.created_at).toLocaleTimeString([], {
