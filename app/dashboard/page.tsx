@@ -93,7 +93,7 @@ export default function LandlordDashboard() {
     // Cleanup function
     return () => {
       console.log('🧹 Cleaning up real-time subscriptions')
-      cleanupFunctions.forEach(cleanup => cleanup())
+      cleanupFunctions.forEach(c => c())
     }
   }, [user, landlordProperties]) // Re-subscribe when properties change
 
