@@ -15,7 +15,7 @@ import { supabase } from "@/lib/supabase"
 import { syncProfileToPropertyListings } from "@/lib/profile-sync"
 
 export default function ProfilePage() {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, refreshProfile } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
@@ -28,6 +28,7 @@ export default function ProfilePage() {
     phone: "",
     location: "",
     bio: "",
+    voucherBedrooms: "",
   })
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function ProfilePage() {
         phone: profile.phone || "",
         location: profile.preferred_city || "",
         bio: profile.bio || "",
+        voucherBedrooms: profile.voucher_bedrooms || "",
       })
     }
   }, [profile, loading, router])
@@ -95,6 +97,11 @@ export default function ProfilePage() {
           console.error('Error syncing profile to properties:', syncError)
           // Don't fail the whole save if sync fails
         }
+      }
+
+      // Refresh profile data from auth context
+      if (refreshProfile) {
+        await refreshProfile()
       }
 
       toast({
@@ -232,15 +239,32 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={profileData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-                disabled={!isEditing}
-                placeholder="Seattle, WA"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={profileData.location}
+                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Seattle, WA"
+                />
+              </div>
+              
+              {userRole === 'tenant' && (
+                <div className="space-y-2">
+                  <Label htmlFor="voucherBedrooms">Voucher Bedrooms</Label>
+                  <Input
+                    id="voucherBedrooms"
+                    value={profileData.voucherBedrooms}
+                    disabled={true} // This is set during onboarding and shouldn't be editable
+                    placeholder="Not set"
+                  />
+                  <p className="text-sm text-gray-500">
+                    Set during initial setup. Contact support to change.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

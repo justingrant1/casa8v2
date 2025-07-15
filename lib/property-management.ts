@@ -26,6 +26,7 @@ export interface CreatePropertyData {
 
 export async function uploadPropertyImages(propertyId: string, images: File[]) {
   const uploadedImages = []
+  const errors = []
   
   for (let i = 0; i < images.length; i++) {
     const image = images[i]
@@ -34,20 +35,34 @@ export async function uploadPropertyImages(propertyId: string, images: File[]) {
     const filePath = `properties/${fileName}`
 
     try {
+      console.log(`Uploading image ${i + 1}/${images.length}: ${image.name}`)
+      
       // Upload image to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('property-images')
-        .upload(filePath, image)
+        .upload(filePath, image, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
       if (uploadError) {
         console.error('Error uploading image:', uploadError)
+        errors.push(`Failed to upload ${image.name}: ${uploadError.message}`)
         continue
       }
+
+      console.log(`Successfully uploaded ${image.name} to storage`)
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('property-images')
         .getPublicUrl(filePath)
+
+      if (!urlData.publicUrl) {
+        console.error('Failed to get public URL for uploaded image')
+        errors.push(`Failed to get public URL for ${image.name}`)
+        continue
+      }
 
       // Save image record to database
       const { data: imageRecord, error: dbError } = await supabase
@@ -63,17 +78,24 @@ export async function uploadPropertyImages(propertyId: string, images: File[]) {
 
       if (dbError) {
         console.error('Error saving image record:', dbError)
+        errors.push(`Failed to save ${image.name} to database: ${dbError.message}`)
         continue
       }
 
+      console.log(`Successfully saved ${image.name} to database`)
       uploadedImages.push(imageRecord)
     } catch (error) {
       console.error('Error processing image:', error)
+      errors.push(`Failed to process ${image.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
       continue
     }
   }
 
-  return uploadedImages
+  if (errors.length > 0) {
+    console.warn('Image upload completed with errors:', errors)
+  }
+
+  return { uploadedImages, errors }
 }
 
 export async function uploadPropertyVideos(propertyId: string, videos: File[]) {
@@ -154,11 +176,17 @@ export async function createPropertyWithImages(propertyData: CreatePropertyData,
 
     // Upload images if any
     let uploadedImages = []
+    let imageErrors = []
     if (images.length > 0) {
       console.log(`Uploading ${images.length} images...`)
       try {
-        uploadedImages = await uploadPropertyImages(property.id, images)
+        const imageResult = await uploadPropertyImages(property.id, images)
+        uploadedImages = imageResult.uploadedImages
+        imageErrors = imageResult.errors
         console.log('Images uploaded successfully:', uploadedImages.length)
+        if (imageErrors.length > 0) {
+          console.warn('Some images failed to upload:', imageErrors)
+        }
       } catch (imageError) {
         console.error('Error uploading images (continuing anyway):', imageError)
         // Continue without images rather than failing completely
@@ -410,9 +438,12 @@ export async function updatePropertyWithImages(
     if (images.length > 0) {
       console.log(`Uploading ${images.length} new images...`)
       try {
-        const newImages = await uploadPropertyImages(propertyId, images)
-        uploadedImages = newImages
+        const imageResult = await uploadPropertyImages(propertyId, images)
+        uploadedImages = imageResult.uploadedImages
         console.log('New images uploaded successfully:', uploadedImages.length)
+        if (imageResult.errors.length > 0) {
+          console.warn('Some new images failed to upload:', imageResult.errors)
+        }
       } catch (imageError) {
         console.error('Error uploading new images (continuing anyway):', imageError)
       }

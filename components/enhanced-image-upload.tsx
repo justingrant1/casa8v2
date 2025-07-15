@@ -53,10 +53,27 @@ export function EnhancedImageUpload({
 
   // Validation functions
   const validateFile = (file: File): string | null => {
-    if (!allowedTypes.includes(file.type)) {
-      return `File type ${file.type} not supported. Please use JPEG, PNG, or WebP.`
+    // Check if file is valid
+    if (!file || typeof file !== 'object') {
+      return 'Invalid file object'
     }
     
+    // Check if file has required properties
+    if (file.size === undefined || file.size === null) {
+      return 'File is missing required properties'
+    }
+    
+    // Check if file is empty
+    if (file.size === 0) {
+      return 'File is empty'
+    }
+    
+    // Check file type
+    if (!file.type || !allowedTypes.includes(file.type)) {
+      return `File type ${file.type || 'unknown'} not supported. Please use JPEG, PNG, or WebP.`
+    }
+    
+    // Check file size
     if (file.size > maxFileSize * 1024 * 1024) {
       return `File size ${(file.size / (1024 * 1024)).toFixed(1)}MB exceeds limit of ${maxFileSize}MB.`
     }
@@ -120,15 +137,26 @@ export function EnhancedImageUpload({
     // Initial validation
     for (let i = 0; i < fileArray.length; i++) {
       const file = fileArray[i]
+      
+      // Check if file is valid
+      if (!file || typeof file !== 'object') {
+        newErrors.push(`File ${i + 1}: Invalid file object`)
+        continue
+      }
+      
+      // Provide fallback for file name
+      const fileName = file.name || `Unknown file ${i + 1}`
+      
       const basicError = validateFile(file)
       
       if (basicError) {
-        newErrors.push(`${file.name}: ${basicError}`)
+        newErrors.push(`${fileName}: ${basicError}`)
         continue
       }
 
       const imageFile: ImageFile = {
         ...file,
+        name: fileName, // Ensure name is always set
         id: `${Date.now()}-${i}`,
         isUploading: true,
         uploadProgress: 0
@@ -142,13 +170,14 @@ export function EnhancedImageUpload({
     // Advanced validation with progress
     for (let i = 0; i < processedFiles.length; i++) {
       const file = processedFiles[i]
+      const fileName = file.name || `File ${i + 1}`
       
       try {
         // Simulate processing time and check dimensions
         const dimensionError = await validateImageDimensions(file)
         
         if (dimensionError) {
-          newErrors.push(`${file.name}: ${dimensionError}`)
+          newErrors.push(`${fileName}: ${dimensionError}`)
           processedFiles[i].error = dimensionError
         } else {
           validFiles.push(file)
@@ -166,7 +195,9 @@ export function EnhancedImageUpload({
         }
         
       } catch (error) {
-        newErrors.push(`${file.name}: Error processing file`)
+        console.error('Error processing file:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        newErrors.push(`${fileName}: Error processing file (${errorMessage})`)
         processedFiles[i].error = 'Processing error'
       }
     }

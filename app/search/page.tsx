@@ -165,6 +165,7 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<"list" | "map">("list")
+  const [priceRange, setPriceRange] = useState([0, 5000])
 
   // Properties and location state
   const [allProperties, setAllProperties] = useState<any[]>([])
@@ -384,7 +385,9 @@ export default function SearchPage() {
     const matchesAmenities =
       selectedAmenities.length === 0 || selectedAmenities.every((amenity) => property.amenities.includes(amenity))
 
-    return matchesSearch && matchesBedrooms && matchesBathrooms && matchesType && matchesAmenities
+    const matchesPrice = property.price >= priceRange[0] && property.price <= priceRange[1]
+
+    return matchesSearch && matchesBedrooms && matchesBathrooms && matchesType && matchesAmenities && matchesPrice
   })
 
   // Sort properties
@@ -554,6 +557,25 @@ export default function SearchPage() {
                           <SelectItem value="3+">3+</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+
+                  {/* Price Range */}
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold text-gray-900">Price Range</Label>
+                    <div className="px-2">
+                      <Slider
+                        min={0}
+                        max={5000}
+                        step={50}
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-sm text-gray-600 mt-2">
+                        <span>${priceRange[0]}</span>
+                        <span>${priceRange[1]}</span>
+                      </div>
                     </div>
                   </div>
 

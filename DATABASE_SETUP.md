@@ -282,11 +282,43 @@ CREATE POLICY "System can create notifications" ON notifications
 
 ### 7. Storage Setup
 ```sql
+-- Create storage buckets
 INSERT INTO storage.buckets (id, name, public) VALUES ('property-images', 'property-images', true);
+INSERT INTO storage.buckets (id, name, public) VALUES ('property-videos', 'property-videos', true);
 
-create policy "Allow authenticated users to upload to property-images"
-on storage.objects for insert
-with check (bucket_id = 'property-images' and auth.role() = 'authenticated');
+-- Storage policies for property images
+CREATE POLICY "Allow authenticated users to upload property images"
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'property-images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow public access to property images"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'property-images');
+
+CREATE POLICY "Allow authenticated users to update their property images"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'property-images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to delete their property images"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'property-images' AND auth.role() = 'authenticated');
+
+-- Storage policies for property videos
+CREATE POLICY "Allow authenticated users to upload property videos"
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'property-videos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow public access to property videos"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'property-videos');
+
+CREATE POLICY "Allow authenticated users to update their property videos"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'property-videos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated users to delete their property videos"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'property-videos' AND auth.role() = 'authenticated');
 ```
 
 ## Environment Variables

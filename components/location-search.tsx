@@ -79,7 +79,7 @@ export function LocationSearch({
 
         if (inputRef.current) {
           const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-            types: ['(cities)'], // Focus on cities, neighborhoods, and postal codes
+            types: ['(cities)', 'postal_code'], // Support cities, neighborhoods, and postal codes
             componentRestrictions: { country: 'us' }, // Restrict to US
             fields: ['formatted_address', 'geometry', 'address_components']
           })
