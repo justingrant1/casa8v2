@@ -19,10 +19,11 @@ export async function middleware(req: NextRequest) {
   const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
   
   if (isProtectedRoute) {
-    // Check for basic auth indicators in cookies
-    const hasAuthCookie = req.cookies.has('sb-access-token') || 
-                         req.cookies.has('sb-refresh-token') ||
-                         req.cookies.has('supabase-auth-token')
+    // Check for Supabase auth cookies (they start with sb-)
+    const authCookies = req.cookies.getAll()
+    const hasAuthCookie = authCookies.some(cookie => 
+      cookie.name.startsWith('sb-') && cookie.value
+    )
     
     // If no auth cookies found, redirect to login
     if (!hasAuthCookie) {

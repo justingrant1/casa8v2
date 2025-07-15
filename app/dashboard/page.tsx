@@ -26,7 +26,7 @@ import { Navbar } from "@/components/navbar"
 import { ApplicationDetailsModal } from "@/components/application-details-modal"
 
 export default function LandlordDashboard() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("properties")
@@ -182,8 +182,9 @@ export default function LandlordDashboard() {
     }
 
     // Check if user is a landlord - only landlords should access dashboard
-    if (!authLoading && user && user.user_metadata?.role !== 'landlord') {
-      console.log('🔍 User is not landlord, redirecting home')
+    // Wait for profile to load before checking role
+    if (!authLoading && user && profile && profile.role !== 'landlord') {
+      console.log('🔍 User is not landlord, redirecting home. Profile role:', profile.role)
       // Redirect tenants back to homepage with message
       toast({
         title: "Access Denied",
@@ -194,15 +195,15 @@ export default function LandlordDashboard() {
       return
     }
 
-    // Fetch properties when user is available and we haven't initialized yet
-    if (user && !authLoading && !initialized) {
-      console.log('🔍 User available, fetching properties for first time')
+    // Fetch properties when user is available, profile is loaded, and we haven't initialized yet
+    if (user && profile && !authLoading && !initialized) {
+      console.log('🔍 User and profile available, fetching properties for first time. Profile role:', profile.role)
       setInitialized(true)
       fetchLandlordProperties()
       fetchApplications()
       fetchMessages()
     }
-  }, [user, authLoading, initialized])
+  }, [user, profile, authLoading, initialized])
 
   // Show loading screen while auth is loading
   if (authLoading) {
