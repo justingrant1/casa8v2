@@ -92,10 +92,22 @@ export default function LandlordDashboard() {
 
     // Cleanup function
     return () => {
-      console.log('🧹 Cleaning up real-time subscriptions')
-      cleanupFunctions.forEach(c => c())
-    }
-  }, [user, landlordProperties]) // Re-subscribe when properties change
+      console.log('🧹 Cleaning up real-time subscriptions');
+      const functionsToCall = [...cleanupFunctions];
+      // Clear the original array to prevent any potential race conditions
+      cleanupFunctions.length = 0; 
+      
+      for (const cleanup of functionsToCall) {
+        if (typeof cleanup === 'function') {
+          try {
+            cleanup();
+          } catch (e) {
+            console.error('Error during a subscription cleanup:', e);
+          }
+        }
+      }
+    };
+  }, [user, landlordProperties]); // Re-subscribe when properties change
 
   // Load initial unread count
   useEffect(() => {
